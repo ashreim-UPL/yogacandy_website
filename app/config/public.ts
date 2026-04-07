@@ -15,7 +15,7 @@ export function isInstagramPostUrl(url: string) {
 
 const instagramProfileUrl = normalizeUrl(
   process.env.NEXT_PUBLIC_INSTAGRAM_PROFILE_URL,
-  "https://instagram.com/yogacandy",
+  "https://instagram.com/yogacandyae",
 );
 
 const instagramPosts: InstagramPostLink[] = [
@@ -33,6 +33,21 @@ const instagramPosts: InstagramPostLink[] = [
     id: "post-3",
     label: "Studio Feature",
     url: normalizeUrl(process.env.NEXT_PUBLIC_INSTAGRAM_POST_URL_3),
+  },
+  {
+    id: "post-4",
+    label: "Practice Clip",
+    url: normalizeUrl(process.env.NEXT_PUBLIC_INSTAGRAM_POST_URL_4),
+  },
+  {
+    id: "post-5",
+    label: "Teacher Highlight",
+    url: normalizeUrl(process.env.NEXT_PUBLIC_INSTAGRAM_POST_URL_5),
+  },
+  {
+    id: "post-6",
+    label: "Community Moment",
+    url: normalizeUrl(process.env.NEXT_PUBLIC_INSTAGRAM_POST_URL_6),
   },
 ].filter((post) => Boolean(post.url));
 

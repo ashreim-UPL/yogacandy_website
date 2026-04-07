@@ -1,10 +1,28 @@
+import type { Metadata } from "next";
 import { allStyles, getStyleBySlug, type FocusScores } from "@/app/data/styles";
+import RegionalInsight from "@/components/RegionalInsight";
 import StudioList from "@/components/StudioList";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
 export function generateStaticParams() {
   return allStyles.map((style) => ({ slug: style.slug }));
+}
+
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const { slug } = await params;
+  const style = getStyleBySlug(slug);
+  if (!style) return {};
+  return {
+    title: `${style.name} Yoga`,
+    description: style.tagline,
+    openGraph: {
+      title: `${style.name} Yoga - YogaCandy`,
+      description: style.tagline,
+      url: `https://yogacandy.info/styles/${slug}`,
+    },
+    alternates: { canonical: `https://yogacandy.info/styles/${slug}` },
+  };
 }
 
 const scoreLabels: { key: keyof FocusScores; label: string; icon: string }[] = [
@@ -39,6 +57,22 @@ function ScoreBar({ score, description }: { score: number; description: string }
   );
 }
 
+function JsonLd({ style }: { style: NonNullable<ReturnType<typeof getStyleBySlug>> }) {
+  const data = {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    headline: `${style.name} Yoga`,
+    description: style.tagline,
+    url: `https://yogacandy.info/styles/${style.slug}`,
+    publisher: {
+      "@type": "Organization",
+      name: "YogaCandy",
+      url: "https://yogacandy.info",
+    },
+  };
+  return <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }} />;
+}
+
 export default async function StylePage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const style = getStyleBySlug(slug);
@@ -46,6 +80,8 @@ export default async function StylePage({ params }: { params: Promise<{ slug: st
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <JsonLd style={style} />
+
       <section className={`bg-gradient-to-br ${style.gradient} text-white py-20`}>
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
           <Link
@@ -159,7 +195,7 @@ export default async function StylePage({ params }: { params: Promise<{ slug: st
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <section className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100">
-            <h2 className="text-xl font-bold mb-6">Where to Practice & Train</h2>
+            <h2 className="text-xl font-bold mb-6">Studios & Practice Centres</h2>
             <StudioList styleName={style.name} fallbackCenters={style.practiceCenters} />
           </section>
 
@@ -182,6 +218,8 @@ export default async function StylePage({ params }: { params: Promise<{ slug: st
           </section>
         </div>
 
+        <RegionalInsight style={style} />
+
         <section>
           <h2 className="text-2xl font-bold mb-6">Gallery</h2>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
@@ -197,7 +235,7 @@ export default async function StylePage({ params }: { params: Promise<{ slug: st
             ))}
           </div>
           <p className="text-xs text-gray-400 mt-3 text-center">
-            Gallery images coming soon — add photos to /public/styles/{style.slug}/
+            Gallery images coming soon - add photos to /public/styles/{style.slug}/
           </p>
         </section>
 
