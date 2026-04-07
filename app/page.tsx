@@ -1,4 +1,9 @@
 import ChatWidget from "@/components/ChatWidget";
+import LocationBanner from "@/components/LocationBanner";
+import StyleRecommender from "@/components/StyleRecommender";
+import InstagramFeed from "@/components/InstagramFeed";
+import RegionalArticles from "@/components/RegionalArticles";
+import NearbyStudios from "@/components/NearbyStudios";
 
 const wheelAreas = [
   {
@@ -43,34 +48,42 @@ const wheelAreas = [
   },
 ];
 
-export default function Home() {
-  const featuredStyles = [
-    {
-      name: "Ashtanga",
-      description: "A fast-paced, intense, flowing style of yoga that follows a set series of poses.",
-      tags: ["Intense", "Flow", "Physical"],
-      color: "bg-orange-50 text-orange-700 border-orange-200"
-    },
-    {
-      name: "Yin Yoga",
-      description: "Focuses on stretching connective tissue by holding specific poses for several minutes.",
-      tags: ["Relaxing", "Deep Stretch", "Meditation"],
-      color: "bg-purple-50 text-purple-700 border-purple-200"
-    },
-    {
-      name: "Iyengar",
-      description: "Emphasizes precision and alignment, often using props like blocks and straps.",
-      tags: ["Alignment", "Props", "Detail"],
-      color: "bg-blue-50 text-blue-700 border-blue-200"
-    }
-  ];
+const featuredStyles = [
+  {
+    name: "Ashtanga",
+    slug: "ashtanga",
+    description: "A fast-paced, intense, flowing style that follows a set series of poses.",
+    tags: ["Intense", "Flow", "Physical"],
+    color: "bg-orange-50 text-orange-700 border-orange-200",
+  },
+  {
+    name: "Yin Yoga",
+    slug: "yin-yoga",
+    description: "Focuses on stretching connective tissue by holding specific poses for several minutes.",
+    tags: ["Relaxing", "Deep Stretch", "Meditation"],
+    color: "bg-purple-50 text-purple-700 border-purple-200",
+  },
+  {
+    name: "Iyengar",
+    slug: "iyengar",
+    description: "Emphasises precision and alignment, often using props like blocks and straps.",
+    tags: ["Alignment", "Props", "Detail"],
+    color: "bg-blue-50 text-blue-700 border-blue-200",
+  },
+];
 
+export default function Home() {
   return (
     <div className="flex flex-col">
       {/* Hero Section */}
       <section className="relative py-20 lg:py-32 overflow-hidden bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <div className="text-center lg:text-left lg:max-w-2xl">
+            {/* Location banner */}
+            <div className="mb-6">
+              <LocationBanner />
+            </div>
+
             <span className="inline-block text-xs font-bold uppercase tracking-widest text-blue-600 bg-blue-50 px-3 py-1 rounded-full mb-6 border border-blue-100">
               AI-Powered Yoga Platform
             </span>
@@ -122,8 +135,29 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Yoga Wheel Section */}
+      {/* AI Style Recommender */}
       <section className="py-20 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            <div>
+              <span className="inline-block text-xs font-bold uppercase tracking-widest text-blue-600 bg-blue-50 px-3 py-1 rounded-full mb-4 border border-blue-100">
+                On-Device AI
+              </span>
+              <h2 className="text-3xl font-bold mb-4">What Yoga Fits You?</h2>
+              <p className="text-gray-600 leading-relaxed mb-4">
+                Answer 5 quick questions. Our AI — running entirely on your device, never sending data to a server — matches your health, goals, and lifestyle to the ideal practice.
+              </p>
+              <p className="text-sm text-gray-400">
+                Powered by Chrome AI (Gemini Nano) when available, with a smart rule-based fallback.
+              </p>
+            </div>
+            <StyleRecommender />
+          </div>
+        </div>
+      </section>
+
+      {/* Yoga Wheel Section */}
+      <section className="py-20 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-3xl font-bold mb-4">The Yoga Wheel</h2>
           <p className="text-gray-600 mb-12 max-w-2xl mx-auto text-lg">
@@ -134,9 +168,9 @@ export default function Home() {
             {wheelAreas.map((area) => (
               <div
                 key={area.label}
-                className="bg-gray-50 p-6 rounded-2xl border border-gray-100 hover:border-blue-200 hover:bg-blue-50 flex flex-col items-center transition-all group"
+                className="bg-white p-6 rounded-2xl border border-gray-100 hover:border-blue-200 hover:bg-blue-50 flex flex-col items-center transition-all group"
               >
-                <div className="w-12 h-12 bg-white rounded-full mb-4 flex items-center justify-center text-blue-600 shadow-sm group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                <div className="w-12 h-12 bg-gray-50 rounded-full mb-4 flex items-center justify-center text-blue-600 shadow-sm group-hover:bg-blue-600 group-hover:text-white transition-colors">
                   {area.icon}
                 </div>
                 <span className="font-bold text-sm uppercase tracking-wider">{area.label}</span>
@@ -151,7 +185,7 @@ export default function Home() {
       </section>
 
       {/* Featured Styles */}
-      <section className="py-20 bg-gray-50">
+      <section className="py-20 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-end mb-12">
             <div>
@@ -167,7 +201,7 @@ export default function Home() {
             {featuredStyles.map((style) => (
               <a
                 key={style.name}
-                href="/styles"
+                href={`/styles/${style.slug}`}
                 className={`p-8 rounded-3xl border ${style.color} transition-all hover:scale-[1.02] hover:shadow-md block`}
               >
                 <h3 className="text-2xl font-bold mb-4">{style.name}</h3>
@@ -188,6 +222,19 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Nearby Studios */}
+      <section className="py-20 bg-gray-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <NearbyStudios />
+        </div>
+      </section>
+
+      {/* Regional Articles */}
+      <RegionalArticles />
+
+      {/* Instagram Feed */}
+      <InstagramFeed />
+
       {/* Community CTA */}
       <section className="py-20 bg-black text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
@@ -199,14 +246,14 @@ export default function Home() {
             <div className="bg-white/10 p-8 rounded-3xl backdrop-blur-sm border border-white/10 w-full sm:w-72 text-left hover:bg-white/15 transition-colors">
               <h3 className="font-bold text-xl mb-2 text-white">For Students</h3>
               <p className="text-sm text-gray-400 mb-6">Find teachers, events, and your perfect flow.</p>
-              <a href="/community" className="text-blue-400 font-bold text-sm hover:underline underline-offset-4 inline-flex items-center gap-1">
-                Register as Student &rarr;
+              <a href="/auth/signup" className="text-blue-400 font-bold text-sm hover:underline underline-offset-4 inline-flex items-center gap-1">
+                Sign Up Free &rarr;
               </a>
             </div>
             <div className="bg-white/10 p-8 rounded-3xl backdrop-blur-sm border border-white/10 w-full sm:w-72 text-left hover:bg-white/15 transition-colors">
               <h3 className="font-bold text-xl mb-2 text-white">For Teachers</h3>
               <p className="text-sm text-gray-400 mb-6">List your classes, events, and reach more students.</p>
-              <a href="/community" className="text-blue-400 font-bold text-sm hover:underline underline-offset-4 inline-flex items-center gap-1">
+              <a href="/auth/signup?role=teacher" className="text-blue-400 font-bold text-sm hover:underline underline-offset-4 inline-flex items-center gap-1">
                 Register as Teacher &rarr;
               </a>
             </div>

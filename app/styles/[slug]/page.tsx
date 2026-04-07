@@ -1,8 +1,26 @@
+import type { Metadata } from "next";
 import { allStyles, getStyleBySlug, type FocusScores } from "@/app/data/styles";
 import { notFound } from "next/navigation";
+import RegionalInsight from "@/components/RegionalInsight";
 
 export function generateStaticParams() {
   return allStyles.map((style) => ({ slug: style.slug }));
+}
+
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const { slug } = await params;
+  const style = getStyleBySlug(slug);
+  if (!style) return {};
+  return {
+    title: `${style.name} Yoga`,
+    description: style.tagline,
+    openGraph: {
+      title: `${style.name} Yoga — YogaCandy`,
+      description: style.tagline,
+      url: `https://yogacandy.info/styles/${slug}`,
+    },
+    alternates: { canonical: `https://yogacandy.info/styles/${slug}` },
+  };
 }
 
 const scoreLabels: { key: keyof FocusScores; label: string; icon: string }[] = [
@@ -45,6 +63,22 @@ function ScoreBar({ score, description }: { score: number; description: string }
   );
 }
 
+function JsonLd({ style }: { style: NonNullable<ReturnType<typeof getStyleBySlug>> }) {
+  const data = {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": `${style.name} Yoga`,
+    "description": style.tagline,
+    "url": `https://yogacandy.info/styles/${style.slug}`,
+    "publisher": {
+      "@type": "Organization",
+      "name": "YogaCandy",
+      "url": "https://yogacandy.info",
+    },
+  };
+  return <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }} />;
+}
+
 export default async function StylePage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const style = getStyleBySlug(slug);
@@ -54,6 +88,7 @@ export default async function StylePage({ params }: { params: Promise<{ slug: st
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <JsonLd style={style} />
       {/* Hero */}
       <section className={`bg-gradient-to-br ${style.gradient} text-white py-20`}>
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -133,7 +168,7 @@ export default async function StylePage({ params }: { params: Promise<{ slug: st
           <p className="text-gray-600 leading-relaxed">{style.history}</p>
         </section>
 
-        {/* Country Popularity */}
+        {/* Global Popularity */}
         <section>
           <h2 className="text-2xl font-bold mb-6">Global Popularity</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -157,38 +192,24 @@ export default async function StylePage({ params }: { params: Promise<{ slug: st
           </div>
         </section>
 
-        {/* Training & Teacher Training */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <section className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100">
-            <h2 className="text-xl font-bold mb-6">Where to Practice & Train</h2>
-            <div className="space-y-4">
-              {style.practiceCenters.map((center) => (
-                <div key={center.name} className="flex items-start gap-3 p-3 rounded-xl bg-gray-50 border border-gray-100">
-                  <span className="text-blue-600 mt-0.5">📍</span>
-                  <div>
-                    <div className="font-semibold text-sm">{center.name}</div>
-                    <div className="text-xs text-gray-500 mt-0.5">{center.location}</div>
-                  </div>
+        {/* Where to Practice (static international list) */}
+        <section className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100">
+          <h2 className="text-xl font-bold mb-6">International Practice Centres</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {style.practiceCenters.map((center) => (
+              <div key={center.name} className="flex items-start gap-3 p-3 rounded-xl bg-gray-50 border border-gray-100">
+                <span className="text-blue-600 mt-0.5">📍</span>
+                <div>
+                  <div className="font-semibold text-sm">{center.name}</div>
+                  <div className="text-xs text-gray-500 mt-0.5">{center.location}</div>
                 </div>
-              ))}
-            </div>
-          </section>
+              </div>
+            ))}
+          </div>
+        </section>
 
-          <section className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100">
-            <h2 className="text-xl font-bold mb-6">Teacher Training</h2>
-            <div className="space-y-4">
-              {style.teacherTraining.map((tt) => (
-                <div key={tt.name} className="flex items-start gap-3 p-3 rounded-xl bg-gray-50 border border-gray-100">
-                  <span className="text-green-600 mt-0.5">🎓</span>
-                  <div>
-                    <div className="font-semibold text-sm">{tt.name}</div>
-                    <div className="text-xs text-gray-500 mt-0.5">{tt.location}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </section>
-        </div>
+        {/* Regional insight: personalised popularity + nearby studios */}
+        <RegionalInsight style={style} />
 
         {/* Image placeholder section */}
         <section>
