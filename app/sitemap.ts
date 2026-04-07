@@ -1,3 +1,4 @@
+export const dynamic = 'force-static';
 import { allStyles } from '@/app/data/styles';
 import type { MetadataRoute } from 'next';
 
