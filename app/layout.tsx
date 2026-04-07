@@ -1,7 +1,9 @@
+import { publicSiteConfig } from "@/app/config/public";
+import Header from "@/components/Header";
+import Link from "next/link";
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import Header from "@/components/Header";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -24,10 +26,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html
-      lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
-    >
+    <html lang="en" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col bg-white text-black font-sans">
         <Header />
 
@@ -46,17 +45,46 @@ export default function RootLayout({
             <div>
               <h3 className="font-bold text-sm mb-4">Platform</h3>
               <ul className="space-y-2 text-sm text-gray-600">
-                <li><a href="/styles" className="hover:text-black">Yoga Styles</a></li>
-                <li><a href="/community" className="hover:text-black">Events</a></li>
-                <li><a href="/community" className="hover:text-black">For Teachers</a></li>
+                <li>
+                  <Link href="/styles" className="hover:text-black">
+                    Yoga Styles
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/community" className="hover:text-black">
+                    Events
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/community" className="hover:text-black">
+                    For Teachers
+                  </Link>
+                </li>
               </ul>
             </div>
             <div>
               <h3 className="font-bold text-sm mb-4">Connect</h3>
               <ul className="space-y-2 text-sm text-gray-600">
-                <li><a href="https://instagram.com/yogacandy" className="hover:text-black">Instagram</a></li>
-                <li><a href="#" className="hover:text-black">Contact Us</a></li>
-                <li><a href="#" className="hover:text-black">Privacy Policy</a></li>
+                <li>
+                  <a
+                    href={publicSiteConfig.instagramProfileUrl}
+                    className="hover:text-black"
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    Instagram
+                  </a>
+                </li>
+                <li>
+                  <a href="#" className="hover:text-black">
+                    Contact Us
+                  </a>
+                </li>
+                <li>
+                  <a href="#" className="hover:text-black">
+                    Privacy Policy
+                  </a>
+                </li>
               </ul>
             </div>
           </div>

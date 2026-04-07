@@ -1,4 +1,5 @@
 import ChatWidget from "@/components/ChatWidget";
+import Link from "next/link";
 
 const wheelAreas = [
   {
@@ -82,18 +83,18 @@ export default function Home() {
               Discover your perfect yoga style with AI-powered recommendations and join a community dedicated to wellness and growth.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
-              <a
+              <Link
                 href="/styles"
                 className="bg-black text-white px-8 py-4 rounded-full font-bold text-lg hover:bg-gray-800 transition-all shadow-lg hover:shadow-xl text-center"
               >
                 Find Your Style
-              </a>
-              <a
+              </Link>
+              <Link
                 href="/community"
                 className="border-2 border-black px-8 py-4 rounded-full font-bold text-lg hover:bg-gray-50 transition-all text-center"
               >
                 Explore Classes
-              </a>
+              </Link>
             </div>
           </div>
         </div>
@@ -144,9 +145,9 @@ export default function Home() {
             ))}
           </div>
 
-          <a href="/styles" className="inline-flex items-center gap-2 text-blue-600 font-bold hover:underline underline-offset-4">
+          <Link href="/styles" className="inline-flex items-center gap-2 text-blue-600 font-bold hover:underline underline-offset-4">
             Explore all styles &rarr;
-          </a>
+          </Link>
         </div>
       </section>
 
@@ -158,14 +159,14 @@ export default function Home() {
               <h2 className="text-3xl font-bold mb-2">Featured Styles</h2>
               <p className="text-gray-600">Explore the diversity of yoga practice.</p>
             </div>
-            <a href="/styles" className="text-blue-600 font-bold hover:underline underline-offset-4">
+            <Link href="/styles" className="text-blue-600 font-bold hover:underline underline-offset-4">
               View All &rarr;
-            </a>
+            </Link>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {featuredStyles.map((style) => (
-              <a
+              <Link
                 key={style.name}
                 href="/styles"
                 className={`p-8 rounded-3xl border ${style.color} transition-all hover:scale-[1.02] hover:shadow-md block`}
@@ -182,7 +183,7 @@ export default function Home() {
                     </span>
                   ))}
                 </div>
-              </a>
+              </Link>
             ))}
           </div>
         </div>
@@ -199,16 +200,16 @@ export default function Home() {
             <div className="bg-white/10 p-8 rounded-3xl backdrop-blur-sm border border-white/10 w-full sm:w-72 text-left hover:bg-white/15 transition-colors">
               <h3 className="font-bold text-xl mb-2 text-white">For Students</h3>
               <p className="text-sm text-gray-400 mb-6">Find teachers, events, and your perfect flow.</p>
-              <a href="/community" className="text-blue-400 font-bold text-sm hover:underline underline-offset-4 inline-flex items-center gap-1">
+              <Link href="/community" className="text-blue-400 font-bold text-sm hover:underline underline-offset-4 inline-flex items-center gap-1">
                 Register as Student &rarr;
-              </a>
+              </Link>
             </div>
             <div className="bg-white/10 p-8 rounded-3xl backdrop-blur-sm border border-white/10 w-full sm:w-72 text-left hover:bg-white/15 transition-colors">
               <h3 className="font-bold text-xl mb-2 text-white">For Teachers</h3>
               <p className="text-sm text-gray-400 mb-6">List your classes, events, and reach more students.</p>
-              <a href="/community" className="text-blue-400 font-bold text-sm hover:underline underline-offset-4 inline-flex items-center gap-1">
+              <Link href="/community" className="text-blue-400 font-bold text-sm hover:underline underline-offset-4 inline-flex items-center gap-1">
                 Register as Teacher &rarr;
-              </a>
+              </Link>
             </div>
           </div>
         </div>
