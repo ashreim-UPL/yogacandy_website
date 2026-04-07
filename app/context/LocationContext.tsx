@@ -1,11 +1,11 @@
 'use client';
 
-import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
 
 export interface UserLocation {
   city: string;
   country: string;
-  countryCode: string; // ISO 2-letter, e.g. "AE", "US"
+  countryCode: string;
   lat?: number;
   lng?: number;
   source: 'detected' | 'manual' | 'default';
@@ -20,6 +20,24 @@ interface LocationContextValue {
 
 const LocationContext = createContext<LocationContextValue | null>(null);
 const STORAGE_KEY = 'yogacandy_location';
+
+function readStoredLocation() {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+
+  const saved = localStorage.getItem(STORAGE_KEY);
+  if (!saved) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(saved) as UserLocation;
+  } catch {
+    localStorage.removeItem(STORAGE_KEY);
+    return null;
+  }
+}
 
 async function reverseGeocode(
   lat: number,
@@ -57,7 +75,7 @@ async function reverseGeocode(
 }
 
 export function LocationProvider({ children }: { children: ReactNode }) {
-  const [location, setLocationState] = useState<UserLocation | null>(null);
+  const [location, setLocationState] = useState<UserLocation | null>(() => readStoredLocation());
   const [isLoading, setIsLoading] = useState(false);
 
   const detectLocation = useCallback(() => {
@@ -86,17 +104,11 @@ export function LocationProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
-      try {
-        setLocationState(JSON.parse(saved));
-        return;
-      } catch {
-        // corrupt data — ignore and detect fresh
-      }
+    if (!location) {
+      const timer = window.setTimeout(detectLocation, 0);
+      return () => window.clearTimeout(timer);
     }
-    detectLocation();
-  }, [detectLocation]);
+  }, [detectLocation, location]);
 
   const setLocation = useCallback((loc: UserLocation) => {
     setLocationState(loc);

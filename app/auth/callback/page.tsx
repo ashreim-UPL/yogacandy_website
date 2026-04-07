@@ -1,17 +1,11 @@
 'use client';
 
-import { useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
+import { useEffect } from 'react';
 
-/**
- * OAuth redirect handler.
- * Supabase appends the session tokens to the URL fragment after SSO.
- * This page processes the fragment and redirects to the home page.
- */
 export default function AuthCallbackPage() {
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      // Session is now active — redirect to home (or wherever the user intended)
+    supabase.auth.getSession().then(() => {
       const next = new URLSearchParams(window.location.search).get('next') ?? '/';
       window.location.href = next;
     });
@@ -29,7 +23,7 @@ export default function AuthCallbackPage() {
             />
           ))}
         </div>
-        <p className="text-gray-500 text-sm">Completing sign-in…</p>
+        <p className="text-gray-500 text-sm">Completing sign-in...</p>
       </div>
     </div>
   );

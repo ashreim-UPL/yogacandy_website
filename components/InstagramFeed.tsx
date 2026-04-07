@@ -1,20 +1,11 @@
 'use client';
 
+import { isInstagramPostUrl, publicSiteConfig } from '@/app/config/public';
 import { useEffect, useRef } from 'react';
 
-// Replace these with real post URLs from @yogacandyae.
-// Each entry is a public Instagram post permalink.
-const INSTAGRAM_POST_URLS: string[] = [
-  // 'https://www.instagram.com/p/REPLACE_WITH_REAL_POST_ID_1/',
-  // 'https://www.instagram.com/p/REPLACE_WITH_REAL_POST_ID_2/',
-  // 'https://www.instagram.com/p/REPLACE_WITH_REAL_POST_ID_3/',
-  // 'https://www.instagram.com/p/REPLACE_WITH_REAL_POST_ID_4/',
-  // 'https://www.instagram.com/p/REPLACE_WITH_REAL_POST_ID_5/',
-  // 'https://www.instagram.com/p/REPLACE_WITH_REAL_POST_ID_6/',
-];
-
+const configuredPosts = publicSiteConfig.instagramPosts.filter((post) => isInstagramPostUrl(post.url));
 const ACCOUNT = 'yogacandyae';
-const PROFILE_URL = `https://www.instagram.com/${ACCOUNT}/`;
+const PROFILE_URL = publicSiteConfig.instagramProfileUrl;
 
 function EmbedPost({ url }: { url: string }) {
   const ref = useRef<HTMLDivElement>(null);
@@ -49,7 +40,7 @@ export default function InstagramFeed() {
     document.body.appendChild(script);
   }, []);
 
-  const hasPosts = INSTAGRAM_POST_URLS.length > 0;
+  const hasPosts = configuredPosts.length > 0;
 
   return (
     <section className="py-20 bg-white">
@@ -77,8 +68,8 @@ export default function InstagramFeed() {
 
         {hasPosts ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {INSTAGRAM_POST_URLS.map((url) => (
-              <EmbedPost key={url} url={url} />
+            {configuredPosts.map((post) => (
+              <EmbedPost key={post.id} url={post.url} />
             ))}
           </div>
         ) : (
@@ -99,8 +90,8 @@ export default function InstagramFeed() {
               </a>
             ))}
             <p className="col-span-full text-center text-xs text-gray-400 mt-2">
-              Add real post URLs to{' '}
-              <code className="bg-gray-100 px-1 rounded">components/InstagramFeed.tsx</code>{' '}
+              Add real post URLs via{' '}
+              <code className="bg-gray-100 px-1 rounded">NEXT_PUBLIC_INSTAGRAM_POST_URL_1..6</code>{' '}
               to display live embeds.
             </p>
           </div>

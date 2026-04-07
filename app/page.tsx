@@ -1,9 +1,10 @@
 import ChatWidget from "@/components/ChatWidget";
-import LocationBanner from "@/components/LocationBanner";
-import StyleRecommender from "@/components/StyleRecommender";
 import InstagramFeed from "@/components/InstagramFeed";
-import RegionalArticles from "@/components/RegionalArticles";
+import LocationBanner from "@/components/LocationBanner";
 import NearbyStudios from "@/components/NearbyStudios";
+import RegionalArticles from "@/components/RegionalArticles";
+import StyleRecommender from "@/components/StyleRecommender";
+import Link from "next/link";
 
 const wheelAreas = [
   {
@@ -75,11 +76,9 @@ const featuredStyles = [
 export default function Home() {
   return (
     <div className="flex flex-col">
-      {/* Hero Section */}
       <section className="relative py-20 lg:py-32 overflow-hidden bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <div className="text-center lg:text-left lg:max-w-2xl">
-            {/* Location banner */}
             <div className="mb-6">
               <LocationBanner />
             </div>
@@ -88,35 +87,32 @@ export default function Home() {
               AI-Powered Yoga Platform
             </span>
             <h1 className="text-5xl lg:text-7xl font-extrabold tracking-tight mb-6 leading-tight">
-              Modern Yoga for a{" "}
-              <span className="text-blue-600">Mindful Life.</span>
+              Modern Yoga for a <span className="text-blue-600">Mindful Life.</span>
             </h1>
             <p className="text-xl text-gray-600 mb-10 leading-relaxed">
               Discover your perfect yoga style with AI-powered recommendations and join a community dedicated to wellness and growth.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
-              <a
+              <Link
                 href="/styles"
                 className="bg-black text-white px-8 py-4 rounded-full font-bold text-lg hover:bg-gray-800 transition-all shadow-lg hover:shadow-xl text-center"
               >
                 Find Your Style
-              </a>
-              <a
+              </Link>
+              <Link
                 href="/community"
                 className="border-2 border-black px-8 py-4 rounded-full font-bold text-lg hover:bg-gray-50 transition-all text-center"
               >
                 Explore Classes
-              </a>
+              </Link>
             </div>
           </div>
         </div>
 
-        {/* Abstract Background Elements */}
         <div className="absolute top-0 right-0 -translate-y-1/4 translate-x-1/4 w-[600px] h-[600px] bg-blue-50 rounded-full blur-3xl opacity-50 pointer-events-none" />
         <div className="absolute bottom-0 left-0 translate-y-1/4 -translate-x-1/4 w-[400px] h-[400px] bg-orange-50 rounded-full blur-3xl opacity-50 pointer-events-none" />
       </section>
 
-      {/* Stats Bar */}
       <section className="py-8 border-y bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
@@ -135,7 +131,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* AI Style Recommender */}
       <section className="py-20 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
@@ -145,7 +140,7 @@ export default function Home() {
               </span>
               <h2 className="text-3xl font-bold mb-4">What Yoga Fits You?</h2>
               <p className="text-gray-600 leading-relaxed mb-4">
-                Answer 5 quick questions. Our AI — running entirely on your device, never sending data to a server — matches your health, goals, and lifestyle to the ideal practice.
+                Answer 5 quick questions. Our AI - running entirely on your device, never sending data to a server - matches your health, goals, and lifestyle to the ideal practice.
               </p>
               <p className="text-sm text-gray-400">
                 Powered by Chrome AI (Gemini Nano) when available, with a smart rule-based fallback.
@@ -156,7 +151,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Yoga Wheel Section */}
       <section className="py-20 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-3xl font-bold mb-4">The Yoga Wheel</h2>
@@ -178,13 +172,12 @@ export default function Home() {
             ))}
           </div>
 
-          <a href="/styles" className="inline-flex items-center gap-2 text-blue-600 font-bold hover:underline underline-offset-4">
+          <Link href="/styles" className="inline-flex items-center gap-2 text-blue-600 font-bold hover:underline underline-offset-4">
             Explore all styles &rarr;
-          </a>
+          </Link>
         </div>
       </section>
 
-      {/* Featured Styles */}
       <section className="py-20 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-end mb-12">
@@ -192,14 +185,14 @@ export default function Home() {
               <h2 className="text-3xl font-bold mb-2">Featured Styles</h2>
               <p className="text-gray-600">Explore the diversity of yoga practice.</p>
             </div>
-            <a href="/styles" className="text-blue-600 font-bold hover:underline underline-offset-4">
+            <Link href="/styles" className="text-blue-600 font-bold hover:underline underline-offset-4">
               View All &rarr;
-            </a>
+            </Link>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {featuredStyles.map((style) => (
-              <a
+              <Link
                 key={style.name}
                 href={`/styles/${style.slug}`}
                 className={`p-8 rounded-3xl border ${style.color} transition-all hover:scale-[1.02] hover:shadow-md block`}
@@ -216,26 +209,21 @@ export default function Home() {
                     </span>
                   ))}
                 </div>
-              </a>
+              </Link>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Nearby Studios */}
       <section className="py-20 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <NearbyStudios />
         </div>
       </section>
 
-      {/* Regional Articles */}
       <RegionalArticles />
-
-      {/* Instagram Feed */}
       <InstagramFeed />
 
-      {/* Community CTA */}
       <section className="py-20 bg-black text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-4xl font-bold mb-6">Build the Community Together</h2>
@@ -246,16 +234,16 @@ export default function Home() {
             <div className="bg-white/10 p-8 rounded-3xl backdrop-blur-sm border border-white/10 w-full sm:w-72 text-left hover:bg-white/15 transition-colors">
               <h3 className="font-bold text-xl mb-2 text-white">For Students</h3>
               <p className="text-sm text-gray-400 mb-6">Find teachers, events, and your perfect flow.</p>
-              <a href="/auth/signup" className="text-blue-400 font-bold text-sm hover:underline underline-offset-4 inline-flex items-center gap-1">
+              <Link href="/auth/signup" className="text-blue-400 font-bold text-sm hover:underline underline-offset-4 inline-flex items-center gap-1">
                 Sign Up Free &rarr;
-              </a>
+              </Link>
             </div>
             <div className="bg-white/10 p-8 rounded-3xl backdrop-blur-sm border border-white/10 w-full sm:w-72 text-left hover:bg-white/15 transition-colors">
               <h3 className="font-bold text-xl mb-2 text-white">For Teachers</h3>
               <p className="text-sm text-gray-400 mb-6">List your classes, events, and reach more students.</p>
-              <a href="/auth/signup?role=teacher" className="text-blue-400 font-bold text-sm hover:underline underline-offset-4 inline-flex items-center gap-1">
+              <Link href="/auth/signup?role=teacher" className="text-blue-400 font-bold text-sm hover:underline underline-offset-4 inline-flex items-center gap-1">
                 Register as Teacher &rarr;
-              </a>
+              </Link>
             </div>
           </div>
         </div>

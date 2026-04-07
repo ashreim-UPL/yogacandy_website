@@ -1,11 +1,11 @@
 'use client';
 export const dynamic = 'force-static';
 
-import { useState, useEffect, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
+import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
+import { Suspense, useEffect, useState } from 'react';
 
-// Providers configured in your Supabase dashboard
 const SSO_PROVIDERS = [
   {
     id: 'google',
@@ -56,24 +56,26 @@ function SignupForm() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
-  // Redirect if already logged in
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) window.location.href = '/';
+    supabase.auth.getSession().then(({ data }) => {
+      if (data.session) window.location.href = '/';
     });
   }, []);
 
   async function handleSSO(provider: 'google' | 'apple' | 'facebook') {
     setLoading(true);
     setError(null);
-    const { error } = await supabase.auth.signInWithOAuth({
+    const { error: authError } = await supabase.auth.signInWithOAuth({
       provider,
       options: {
         redirectTo: `${window.location.origin}/auth/callback`,
         queryParams: { role: isTeacher ? 'teacher' : 'student' },
       },
     });
-    if (error) { setError(error.message); setLoading(false); }
+    if (authError) {
+      setError(authError.message);
+      setLoading(false);
+    }
   }
 
   async function handleEmailAuth(e: React.FormEvent) {
@@ -86,7 +88,7 @@ function SignupForm() {
     setError(null);
 
     if (mode === 'signup') {
-      const { error } = await supabase.auth.signUp({
+      const { error: authError } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -99,15 +101,15 @@ function SignupForm() {
           emailRedirectTo: `${window.location.origin}/auth/callback`,
         },
       });
-      if (error) {
-        setError(error.message);
+      if (authError) {
+        setError(authError.message);
       } else {
-        setSuccess('Check your inbox — we sent you a confirmation link.');
+        setSuccess('Check your inbox - we sent you a confirmation link.');
       }
     } else {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) {
-        setError(error.message);
+      const { error: authError } = await supabase.auth.signInWithPassword({ email, password });
+      if (authError) {
+        setError(authError.message);
       } else {
         window.location.href = '/';
       }
@@ -118,48 +120,45 @@ function SignupForm() {
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4">
       <div className="w-full max-w-md">
-        {/* Logo */}
         <div className="text-center mb-8">
-          <a href="/">
+          <Link href="/">
             <img src="/yogacandy-banner.svg" alt="YogaCandy" className="h-8 mx-auto mb-4" />
-          </a>
-          <h1 className="text-2xl font-bold">
-            {mode === 'signup' ? 'Create your account' : 'Welcome back'}
-          </h1>
+          </Link>
+          <h1 className="text-2xl font-bold">{mode === 'signup' ? 'Create your account' : 'Welcome back'}</h1>
           <p className="text-gray-500 text-sm mt-1">
-            {mode === 'signup'
-              ? 'Join the YogaCandy community.'
-              : 'Sign in to your YogaCandy account.'}
+            {mode === 'signup' ? 'Join the YogaCandy community.' : 'Sign in to your YogaCandy account.'}
           </p>
         </div>
 
         <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-8">
-          {/* Mode toggle */}
           <div className="flex rounded-xl bg-gray-100 p-1 mb-6">
-            {(['signup', 'login'] as const).map((m) => (
+            {(['signup', 'login'] as const).map((nextMode) => (
               <button
-                key={m}
-                onClick={() => { setMode(m); setError(null); setSuccess(null); }}
+                key={nextMode}
+                onClick={() => {
+                  setMode(nextMode);
+                  setError(null);
+                  setSuccess(null);
+                }}
                 className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all ${
-                  mode === m ? 'bg-white shadow-sm text-black' : 'text-gray-500 hover:text-gray-700'
+                  mode === nextMode ? 'bg-white shadow-sm text-black' : 'text-gray-500 hover:text-gray-700'
                 }`}
               >
-                {m === 'signup' ? 'Sign Up' : 'Log In'}
+                {nextMode === 'signup' ? 'Sign Up' : 'Log In'}
               </button>
             ))}
           </div>
 
-          {/* SSO providers */}
           <div className="space-y-3 mb-6">
-            {SSO_PROVIDERS.map((p) => (
+            {SSO_PROVIDERS.map((provider) => (
               <button
-                key={p.id}
-                onClick={() => handleSSO(p.id as 'google' | 'apple' | 'facebook')}
+                key={provider.id}
+                onClick={() => handleSSO(provider.id as 'google' | 'apple' | 'facebook')}
                 disabled={loading}
-                className={`w-full flex items-center justify-center gap-3 px-4 py-3 rounded-xl font-semibold text-sm transition-all disabled:opacity-50 ${p.className}`}
+                className={`w-full flex items-center justify-center gap-3 px-4 py-3 rounded-xl font-semibold text-sm transition-all disabled:opacity-50 ${provider.className}`}
               >
-                {p.icon}
-                {p.label}
+                {provider.icon}
+                {provider.label}
               </button>
             ))}
           </div>
@@ -170,7 +169,6 @@ function SignupForm() {
             <div className="flex-grow h-px bg-gray-200" />
           </div>
 
-          {/* Email form */}
           <form onSubmit={handleEmailAuth} className="space-y-4">
             {mode === 'signup' && (
               <>
@@ -188,22 +186,21 @@ function SignupForm() {
                   />
                 </div>
 
-                {/* Teacher / Student toggle */}
                 <div>
                   <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">
                     I am joining as
                   </label>
                   <div className="flex rounded-xl bg-gray-100 p-1">
-                    {[{ label: 'Student', value: false }, { label: 'Teacher', value: true }].map((opt) => (
+                    {[{ label: 'Student', value: false }, { label: 'Teacher', value: true }].map((option) => (
                       <button
-                        key={opt.label}
+                        key={option.label}
                         type="button"
-                        onClick={() => setIsTeacher(opt.value)}
+                        onClick={() => setIsTeacher(option.value)}
                         className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all ${
-                          isTeacher === opt.value ? 'bg-white shadow-sm text-black' : 'text-gray-500'
+                          isTeacher === option.value ? 'bg-white shadow-sm text-black' : 'text-gray-500'
                         }`}
                       >
-                        {opt.value ? '🧑‍🏫' : '🧘'} {opt.label}
+                        {option.value ? '🧑‍🏫' : '🧘'} {option.label}
                       </button>
                     ))}
                   </div>
@@ -212,9 +209,7 @@ function SignupForm() {
             )}
 
             <div>
-              <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">
-                Email
-              </label>
+              <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Email</label>
               <input
                 type="email"
                 value={email}
@@ -227,9 +222,7 @@ function SignupForm() {
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">
-                Password
-              </label>
+              <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Password</label>
               <input
                 type="password"
                 value={password}
@@ -242,7 +235,6 @@ function SignupForm() {
               />
             </div>
 
-            {/* GDPR consent — signup only */}
             {mode === 'signup' && (
               <label className="flex items-start gap-3 cursor-pointer">
                 <input
@@ -252,33 +244,20 @@ function SignupForm() {
                   className="mt-0.5 w-4 h-4 rounded border-gray-300 accent-blue-600 flex-shrink-0"
                 />
                 <span className="text-xs text-gray-500 leading-relaxed">
-                  I agree to the{' '}
-                  <a href="/privacy" className="text-blue-600 hover:underline font-medium">
-                    Privacy Policy
-                  </a>{' '}
-                  and consent to YogaCandy processing my data as described. I understand I can withdraw consent at any time.{' '}
-                  <span className="text-gray-400">(Required — GDPR Art. 7)</span>
+                  I agree to the <Link href="/privacy" className="text-blue-600 hover:underline font-medium">Privacy Policy</Link> and consent to YogaCandy processing my data as described. I understand I can withdraw consent at any time. <span className="text-gray-400">(Required - GDPR Art. 7)</span>
                 </span>
               </label>
             )}
 
-            {error && (
-              <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-xl">
-                {error}
-              </div>
-            )}
-            {success && (
-              <div className="bg-green-50 border border-green-200 text-green-700 text-sm px-4 py-3 rounded-xl">
-                {success}
-              </div>
-            )}
+            {error && <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-xl">{error}</div>}
+            {success && <div className="bg-green-50 border border-green-200 text-green-700 text-sm px-4 py-3 rounded-xl">{success}</div>}
 
             <button
               type="submit"
               disabled={loading || (mode === 'signup' && !gdprConsent)}
               className="w-full bg-black text-white py-3 rounded-xl font-bold text-sm hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? 'Please wait…' : mode === 'signup' ? 'Create Account' : 'Log In'}
+              {loading ? 'Please wait...' : mode === 'signup' ? 'Create Account' : 'Log In'}
             </button>
           </form>
 
@@ -292,9 +271,7 @@ function SignupForm() {
         </div>
 
         <p className="text-center text-xs text-gray-400 mt-6 leading-relaxed">
-          By continuing, you agree to our{' '}
-          <a href="/privacy" className="hover:underline">Privacy Policy</a>. YogaCandy is GDPR compliant —
-          your data is never sold.
+          By continuing, you agree to our <Link href="/privacy" className="hover:underline">Privacy Policy</Link>. YogaCandy is GDPR compliant - your data is never sold.
         </p>
       </div>
     </div>
