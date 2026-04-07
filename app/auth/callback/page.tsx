@@ -1,18 +1,12 @@
 'use client';
-export const dynamic = 'force-static';
+export const dynamic = 'force-dynamic';
 
 import { useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 
-/**
- * OAuth redirect handler.
- * Supabase appends the session tokens to the URL fragment after SSO.
- * This page processes the fragment and redirects to the home page.
- */
 export default function AuthCallbackPage() {
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
-      // Session is now active — redirect to home (or wherever the user intended)
       const next = new URLSearchParams(window.location.search).get('next') ?? '/';
       window.location.href = next;
     });
