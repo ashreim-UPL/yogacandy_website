@@ -1,3 +1,24 @@
+const levelColors: Record<string, string> = {
+  "Beginner": "bg-green-50 text-green-700 border-green-200",
+  "All Levels": "bg-blue-50 text-blue-700 border-blue-200",
+  "Intermediate": "bg-orange-50 text-orange-700 border-orange-200",
+  "Intermediate/Advanced": "bg-red-50 text-red-700 border-red-200",
+  "Advanced": "bg-red-50 text-red-700 border-red-200",
+};
+
+const styleIcons: Record<string, string> = {
+  "Ashtanga": "🔥",
+  "Bikram / Hot Yoga": "🌡️",
+  "Iyengar": "🎯",
+  "Jivamukti": "🕉️",
+  "Kundalini": "⚡",
+  "Yin Yoga": "🌙",
+  "Power Yoga": "💪",
+  "Restorative": "🌿",
+  "Viniyoga": "🩺",
+  "Suspension (SWING)": "🪁",
+};
+
 export default function StylesPage() {
   const allStyles = [
     {
@@ -66,32 +87,45 @@ export default function StylesPage() {
     <div className="py-20 bg-gray-50 min-h-screen">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <header className="mb-16 text-center">
+          <span className="inline-block text-xs font-bold uppercase tracking-widest text-blue-600 bg-blue-50 px-3 py-1 rounded-full mb-4 border border-blue-100">
+            {allStyles.length} Styles
+          </span>
           <h1 className="text-4xl font-extrabold mb-4">Yoga Styles Directory</h1>
           <p className="text-xl text-gray-600 max-w-2xl mx-auto">
             From the intensity of Ashtanga to the meditative stillness of Yin, find the practice that resonates with your soul.
           </p>
         </header>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          {allStyles.map((style) => (
-            <div key={style.name} className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
-              <div className="flex justify-between items-start mb-4">
-                <h2 className="text-2xl font-bold">{style.name}</h2>
-                <span className="bg-blue-50 text-blue-700 text-xs font-bold px-3 py-1 rounded-full border border-blue-100 uppercase tracking-wider">
-                  {style.level}
-                </span>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {allStyles.map((style) => {
+            const levelColor = levelColors[style.level] ?? "bg-gray-50 text-gray-700 border-gray-200";
+            const icon = styleIcons[style.name] ?? "🧘";
+            return (
+              <div
+                key={style.name}
+                className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100 hover:shadow-md hover:border-gray-200 transition-all group"
+              >
+                <div className="flex justify-between items-start mb-4">
+                  <div className="flex items-center gap-3">
+                    <span className="text-2xl" role="img" aria-label={style.name}>{icon}</span>
+                    <h2 className="text-2xl font-bold group-hover:text-blue-600 transition-colors">{style.name}</h2>
+                  </div>
+                  <span className={`text-xs font-bold px-3 py-1 rounded-full border uppercase tracking-wider flex-shrink-0 ${levelColor}`}>
+                    {style.level}
+                  </span>
+                </div>
+                <p className="text-gray-600 mb-6 leading-relaxed">
+                  {style.description}
+                </p>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">Focus:</span>
+                  <span className="text-xs font-bold text-black uppercase tracking-widest bg-gray-100 px-3 py-1 rounded-lg">
+                    {style.focus}
+                  </span>
+                </div>
               </div>
-              <p className="text-gray-600 mb-6 leading-relaxed italic">
-                {style.description}
-              </p>
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-bold text-gray-400 uppercase tracking-widest">Primary Focus:</span>
-                <span className="text-sm font-bold text-black uppercase tracking-widest bg-gray-100 px-3 py-1 rounded-lg">
-                  {style.focus}
-                </span>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </div>
