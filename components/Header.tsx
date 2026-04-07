@@ -26,9 +26,8 @@ export default function Header() {
     <header className="border-b bg-white/90 backdrop-blur-sm sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
         {/* Logo */}
-        <a href="/" className="flex items-center gap-2 group">
-          <img src="/logo.svg" alt="YogaCandy" className="h-8 w-8 group-hover:scale-110 transition-transform" />
-          <span className="font-bold text-xl tracking-tight">YogaCandy</span>
+        <a href="/" className="flex items-center group">
+          <img src="/yogacandy-banner.svg" alt="YogaCandy" className="h-10 group-hover:scale-105 transition-transform" />
         </a>
 
         {/* Desktop nav */}

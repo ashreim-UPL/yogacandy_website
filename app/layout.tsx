@@ -36,9 +36,8 @@ export default function RootLayout({
         <footer className="border-t bg-gray-50 py-12">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 md:grid-cols-4 gap-8">
             <div className="col-span-1 md:col-span-2">
-              <div className="flex items-center gap-2 mb-4">
-                <img src="/logo.svg" alt="YogaCandy Logo" className="h-6 w-6" />
-                <span className="font-bold text-lg">YogaCandy</span>
+              <div className="mb-4">
+                <img src="/yogacandy-banner.svg" alt="YogaCandy" className="h-8" />
               </div>
               <p className="text-gray-500 text-sm max-w-xs">
                 Empowering your yoga journey through AI-driven insights and a vibrant community.
