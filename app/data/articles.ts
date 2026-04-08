@@ -177,3 +177,7 @@ export function getArticlesForCountry(countryCode: string, limit = 6): Article[]
     })
     .slice(0, limit);
 }
+
+export function getArticleBySlug(slug: string): Article | undefined {
+  return allArticles.find((article) => article.id === slug);
+}

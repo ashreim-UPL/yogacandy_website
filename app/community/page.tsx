@@ -1,4 +1,5 @@
 import InstagramFeed from "@/components/InstagramFeed";
+import Link from "next/link";
 
 function parseEventDate(dateStr: string): { month: string; day: string } {
   const d = new Date(dateStr);
@@ -52,67 +53,40 @@ export default function CommunityPage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
           <section>
-            <h2 className="text-3xl font-bold mb-8">Join the Movement</h2>
-            <div className="space-y-8">
+            <h2 className="text-3xl font-bold mb-8">Register in One Place</h2>
+            <div className="space-y-6">
               <div className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm">
                 <div className="flex items-center gap-3 mb-4">
                   <span className="text-2xl">🧑‍🏫</span>
-                  <h3 className="text-xl font-bold">I am a Teacher</h3>
+                  <h3 className="text-xl font-bold">Teacher and student profiles</h3>
                 </div>
                 <p className="text-gray-500 mb-6 text-sm">
-                  List your classes, manage your schedule, and connect with students looking for your expertise.
+                  Account creation should happen only once in the main signup flow. After that we can store teacher and student profile details in a backend database and keep the rest of the site read-only.
                 </p>
-                <form className="space-y-4">
-                  <input
-                    type="text"
-                    placeholder="Full Name"
-                    className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-black outline-none transition-shadow"
-                  />
-                  <input
-                    type="email"
-                    placeholder="Email Address"
-                    className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-black outline-none transition-shadow"
-                  />
-                  <input
-                    type="text"
-                    placeholder="Specialization (e.g. Ashtanga, Vinyasa)"
-                    className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-black outline-none transition-shadow"
-                  />
-                  <button
-                    type="submit"
-                    className="w-full bg-black text-white font-bold py-3 rounded-xl hover:bg-gray-800 transition-all uppercase tracking-widest text-xs"
+                <div className="flex flex-wrap gap-3">
+                  <Link
+                    href="/auth/signup?role=teacher"
+                    className="bg-black text-white font-bold py-3 px-5 rounded-xl hover:bg-gray-800 transition-all uppercase tracking-widest text-xs"
                   >
-                    Apply as Teacher
-                  </button>
-                </form>
+                    Register as Teacher
+                  </Link>
+                  <Link
+                    href="/auth/signup"
+                    className="border border-gray-200 text-gray-800 font-bold py-3 px-5 rounded-xl hover:bg-gray-50 transition-all uppercase tracking-widest text-xs"
+                  >
+                    Register as Student
+                  </Link>
+                </div>
               </div>
 
               <div className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm">
                 <div className="flex items-center gap-3 mb-4">
-                  <span className="text-2xl">🧘</span>
-                  <h3 className="text-xl font-bold">I am a Student</h3>
+                  <span className="text-2xl">🗄️</span>
+                  <h3 className="text-xl font-bold">Backend profile storage</h3>
                 </div>
-                <p className="text-gray-500 mb-6 text-sm">
-                  Find your perfect flow, track your progress, and get AI-powered recommendations.
+                <p className="text-gray-500 text-sm leading-relaxed">
+                  The current signup flow already uses Supabase auth, but profiles should eventually live in a real users table so we can manage teacher bios, saved preferences, and event submissions without duplicating registration forms across the site.
                 </p>
-                <form className="space-y-4">
-                  <input
-                    type="text"
-                    placeholder="Full Name"
-                    className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-black outline-none transition-shadow"
-                  />
-                  <input
-                    type="email"
-                    placeholder="Email Address"
-                    className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-black outline-none transition-shadow"
-                  />
-                  <button
-                    type="submit"
-                    className="w-full bg-blue-600 text-white font-bold py-3 rounded-xl hover:bg-blue-700 transition-all uppercase tracking-widest text-xs"
-                  >
-                    Sign Up as Student
-                  </button>
-                </form>
               </div>
             </div>
           </section>
@@ -120,9 +94,9 @@ export default function CommunityPage() {
           <section>
             <div className="flex justify-between items-center mb-8">
               <h2 className="text-3xl font-bold">Upcoming Events</h2>
-              <button className="text-sm font-bold text-blue-600 hover:underline underline-offset-4">
+              <Link href="/events" className="text-sm font-bold text-blue-600 hover:underline underline-offset-4">
                 View Calendar
-              </button>
+              </Link>
             </div>
 
             <div className="space-y-4">
@@ -159,9 +133,12 @@ export default function CommunityPage() {
 
             <div className="mt-8 p-6 rounded-3xl bg-blue-50 border border-blue-100 text-center">
               <p className="text-sm text-blue-700 font-medium mb-3">Are you a teacher with an event to share?</p>
-              <button className="bg-blue-600 text-white text-sm font-bold px-6 py-2 rounded-full hover:bg-blue-700 transition-colors">
+              <Link
+                href="/events"
+                className="bg-blue-600 text-white text-sm font-bold px-6 py-2 rounded-full hover:bg-blue-700 transition-colors inline-flex"
+              >
                 Submit Your Event
-              </button>
+              </Link>
             </div>
           </section>
         </div>

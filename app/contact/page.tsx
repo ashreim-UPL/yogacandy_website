@@ -16,7 +16,7 @@ export default function ContactPage() {
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     // Opens mailto as a lightweight contact method for a static site
-    const mailto = `mailto:hello@yogacandy.info?subject=${encodeURIComponent(form.subject || "YogaCandy Enquiry")}&body=${encodeURIComponent(
+    const mailto = `mailto:admin@yogacandy.store?subject=${encodeURIComponent(form.subject || "YogaCandy Enquiry")}&body=${encodeURIComponent(
       `Name: ${form.name}\nEmail: ${form.email}\n\n${form.message}`
     )}`;
     window.location.href = mailto;
@@ -61,8 +61,8 @@ export default function ContactPage() {
           <div className="space-y-4 text-sm text-gray-600">
             <div>
               <p className="font-bold text-gray-800 mb-1">Email</p>
-              <a href="mailto:hello@yogacandy.info" className="text-purple-600 hover:underline">
-                hello@yogacandy.info
+              <a href="mailto:admin@yogacandy.store" className="text-purple-600 hover:underline">
+                admin@yogacandy.store
               </a>
             </div>
             <div>
@@ -97,8 +97,8 @@ export default function ContactPage() {
               <h3 className="text-xl font-bold mb-2">Your email app should open!</h3>
               <p className="text-gray-600 text-sm">
                 If it didn&apos;t, email us directly at{" "}
-                <a href="mailto:hello@yogacandy.info" className="text-purple-600 hover:underline">
-                  hello@yogacandy.info
+                <a href="mailto:admin@yogacandy.store" className="text-purple-600 hover:underline">
+                  admin@yogacandy.store
                 </a>
               </p>
             </div>
