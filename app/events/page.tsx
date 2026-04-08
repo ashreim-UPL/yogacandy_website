@@ -3,6 +3,8 @@
 import Link from 'next/link';
 import { useLocation } from '@/app/context/LocationContext';
 import { aggregationWorkflow, getEventsForLocation } from '@/app/data/events';
+import { supabase } from '@/lib/supabase';
+import { useEffect, useState } from 'react';
 
 function formatDate(date: string) {
   return new Date(date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
@@ -11,6 +13,89 @@ function formatDate(date: string) {
 export default function EventsPage() {
   const { location, isLoading } = useLocation();
   const events = getEventsForLocation(location?.countryCode, 6);
+  const [sessionUserId, setSessionUserId] = useState<string | null>(null);
+  const [submissionStatus, setSubmissionStatus] = useState<string | null>(null);
+  const [submissionError, setSubmissionError] = useState<string | null>(null);
+  const [submissionLoading, setSubmissionLoading] = useState(false);
+  const [submissionForm, setSubmissionForm] = useState({
+    title: '',
+    eventDate: '',
+    format: 'Online',
+    city: '',
+    country: '',
+    countryCode: '',
+    price: '',
+    description: '',
+    sourceName: '',
+    sourceUrl: '',
+    tags: '',
+  });
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      setSessionUserId(data.session?.user.id ?? null);
+    });
+  }, []);
+
+  function handleSubmissionChange(
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>,
+  ) {
+    setSubmissionForm((current) => ({ ...current, [e.target.name]: e.target.value }));
+  }
+
+  async function handleSubmitEvent(e: React.FormEvent) {
+    e.preventDefault();
+    setSubmissionError(null);
+    setSubmissionStatus(null);
+
+    if (!sessionUserId) {
+      setSubmissionError('Please create an account first so we can store the event under your profile.');
+      return;
+    }
+
+    setSubmissionLoading(true);
+    const locationKey = `${submissionForm.countryCode || submissionForm.country || 'global'}:${submissionForm.city || 'online'}`.toLowerCase();
+    const { error } = await supabase.from('event_submissions').insert({
+      user_id: sessionUserId,
+      title: submissionForm.title,
+      event_date: submissionForm.eventDate,
+      format: submissionForm.format,
+      city: submissionForm.city,
+      country: submissionForm.country,
+      country_code: submissionForm.countryCode || 'GL',
+      price: submissionForm.price || null,
+      description: submissionForm.description,
+      source_name: submissionForm.sourceName || 'user submission',
+      source_url: submissionForm.sourceUrl || null,
+      tags: submissionForm.tags
+        .split(',')
+        .map((tag) => tag.trim())
+        .filter(Boolean),
+      location_key: locationKey,
+      status: 'pending',
+    });
+
+    if (error) {
+      setSubmissionError(error.message);
+    } else {
+      setSubmissionStatus('Event submitted for review. We will use it in the location workflow after moderation.');
+      setSubmissionForm({
+        title: '',
+        eventDate: '',
+        format: 'Online',
+        city: '',
+        country: '',
+        countryCode: '',
+        price: '',
+        description: '',
+        sourceName: '',
+        sourceUrl: '',
+        tags: '',
+      });
+    }
+
+    setSubmissionLoading(false);
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 py-20">
@@ -80,9 +165,125 @@ export default function EventsPage() {
           <div className="bg-white rounded-3xl p-8 border border-gray-100 shadow-sm">
             <h2 className="text-2xl font-bold mb-4">Get involved</h2>
             <p className="text-gray-600 mb-6">
-              Teachers and organizers can share event information through the contact page for now. Later this can become a proper submission flow backed by a database and moderation queue.
+              Teachers and organizers can submit events here. Logged-in users create a row in the event submissions table, which can later be reviewed and promoted into the location-based event listings table.
             </p>
-            <div className="flex flex-wrap gap-4">
+            <form onSubmit={handleSubmitEvent} className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <input
+                  name="title"
+                  value={submissionForm.title}
+                  onChange={handleSubmissionChange}
+                  required
+                  placeholder="Event title"
+                  className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-black outline-none transition-shadow"
+                />
+                <input
+                  name="eventDate"
+                  type="date"
+                  value={submissionForm.eventDate}
+                  onChange={handleSubmissionChange}
+                  required
+                  className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-black outline-none transition-shadow"
+                />
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <select
+                  name="format"
+                  value={submissionForm.format}
+                  onChange={handleSubmissionChange}
+                  className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-black outline-none transition-shadow bg-white"
+                >
+                  <option>Online</option>
+                  <option>In person</option>
+                  <option>Hybrid</option>
+                </select>
+                <input
+                  name="price"
+                  value={submissionForm.price}
+                  onChange={handleSubmissionChange}
+                  placeholder="Price or free"
+                  className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-black outline-none transition-shadow"
+                />
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <input
+                  name="city"
+                  value={submissionForm.city}
+                  onChange={handleSubmissionChange}
+                  required
+                  placeholder="City"
+                  className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-black outline-none transition-shadow"
+                />
+                <input
+                  name="country"
+                  value={submissionForm.country}
+                  onChange={handleSubmissionChange}
+                  required
+                  placeholder="Country"
+                  className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-black outline-none transition-shadow"
+                />
+                <input
+                  name="countryCode"
+                  value={submissionForm.countryCode}
+                  onChange={handleSubmissionChange}
+                  maxLength={2}
+                  placeholder="ISO code"
+                  className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-black outline-none transition-shadow"
+                />
+              </div>
+              <textarea
+                name="description"
+                value={submissionForm.description}
+                onChange={handleSubmissionChange}
+                required
+                rows={4}
+                placeholder="Describe the event and why it matters"
+                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-black outline-none transition-shadow resize-none"
+              />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <input
+                  name="sourceName"
+                  value={submissionForm.sourceName}
+                  onChange={handleSubmissionChange}
+                  placeholder="Source name"
+                  className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-black outline-none transition-shadow"
+                />
+                <input
+                  name="sourceUrl"
+                  value={submissionForm.sourceUrl}
+                  onChange={handleSubmissionChange}
+                  placeholder="Source URL"
+                  className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-black outline-none transition-shadow"
+                />
+              </div>
+              <input
+                name="tags"
+                value={submissionForm.tags}
+                onChange={handleSubmissionChange}
+                placeholder="Tags, comma separated"
+                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-black outline-none transition-shadow"
+              />
+
+              {submissionError && (
+                <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-xl">
+                  {submissionError}
+                </div>
+              )}
+              {submissionStatus && (
+                <div className="bg-green-50 border border-green-200 text-green-700 text-sm px-4 py-3 rounded-xl">
+                  {submissionStatus}
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={submissionLoading}
+                className="w-full bg-black text-white px-5 py-3 rounded-full font-bold text-sm hover:bg-gray-800 transition-colors disabled:opacity-50"
+              >
+                {submissionLoading ? 'Submitting...' : 'Submit Event'}
+              </button>
+            </form>
+            <div className="flex flex-wrap gap-4 mt-6">
               <Link href="/contact" className="bg-black text-white px-5 py-3 rounded-full font-bold text-sm hover:bg-gray-800 transition-colors">
                 Suggest an Event
               </Link>

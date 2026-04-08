@@ -1,14 +1,27 @@
 'use client';
 
 import { supabase } from '@/lib/supabase';
+import { syncCurrentUserProfile } from '@/lib/profile';
 import { useEffect } from 'react';
 
 export default function AuthCallbackPage() {
   useEffect(() => {
-    supabase.auth.getSession().then(() => {
+    let mounted = true;
+
+    supabase.auth.getSession().then(async ({ data }) => {
+      const session = data.session;
+      if (session?.user) {
+        await syncCurrentUserProfile(session.user);
+      }
+
+      if (!mounted) return;
       const next = new URLSearchParams(window.location.search).get('next') ?? '/';
       window.location.href = next;
     });
+
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   return (
