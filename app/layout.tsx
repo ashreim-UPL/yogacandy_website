@@ -2,7 +2,6 @@ import { publicSiteConfig } from "@/app/config/public";
 import { LocationProvider } from "@/app/context/LocationContext";
 import Header from "@/components/Header";
 import Link from "next/link";
-import Script from "next/script";
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
@@ -27,12 +26,7 @@ export const metadata: Metadata = {
   },
   description:
     "Discover your perfect yoga style with AI-powered recommendations. Find local studios, explore 10+ yoga styles, join a global community of students and teachers.",
-  keywords: [
-    "yoga", "yoga styles", "yoga community", "teacher training", "AI yoga", "yoga near me", "YogaCandy",
-    "ashtanga yoga", "yin yoga", "hatha yoga", "kundalini yoga", "vinyasa yoga", "hot yoga", "bikram yoga",
-    "iyengar yoga", "yoga classes UAE", "yoga dubai", "yoga abu dhabi", "yoga instructor", "yoga studio",
-    "online yoga", "yoga for beginners", "yoga teacher training",
-  ],
+  keywords: ["yoga", "yoga styles", "yoga community", "teacher training", "AI yoga", "yoga near me", "YogaCandy"],
   authors: [{ name: "YogaCandy" }],
   creator: "YogaCandy",
   openGraph: {
@@ -56,12 +50,6 @@ export const metadata: Metadata = {
     googleBot: { index: true, follow: true, "max-image-preview": "large" },
   },
   alternates: { canonical: BASE_URL },
-  ...(publicSiteConfig.gscVerification
-    ? { verification: { google: publicSiteConfig.gscVerification } }
-    : {}),
-  ...(publicSiteConfig.adsenseId
-    ? { other: { "google-adsense-account": publicSiteConfig.adsenseId } }
-    : {}),
 };
 
 export default function RootLayout({
@@ -72,14 +60,6 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col bg-white text-black font-sans">
-        {publicSiteConfig.adsenseId && (
-          <Script
-            async
-            src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${publicSiteConfig.adsenseId}`}
-            crossOrigin="anonymous"
-            strategy="afterInteractive"
-          />
-        )}
         <LocationProvider>
           <Header />
           <main className="flex-grow">{children}</main>

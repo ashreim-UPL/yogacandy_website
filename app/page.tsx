@@ -73,36 +73,9 @@ const featuredStyles = [
   },
 ];
 
-const homeJsonLd = {
-  "@context": "https://schema.org",
-  "@graph": [
-    {
-      "@type": "Organization",
-      "@id": "https://yogacandy.info/#organization",
-      name: "YogaCandy",
-      url: "https://yogacandy.info",
-      logo: "https://yogacandy.info/yogacandy-banner.svg",
-      sameAs: ["https://instagram.com/yogacandyae"],
-    },
-    {
-      "@type": "WebSite",
-      "@id": "https://yogacandy.info/#website",
-      url: "https://yogacandy.info",
-      name: "YogaCandy",
-      publisher: { "@id": "https://yogacandy.info/#organization" },
-      potentialAction: {
-        "@type": "SearchAction",
-        target: "https://yogacandy.info/styles?q={search_term_string}",
-        "query-input": "required name=search_term_string",
-      },
-    },
-  ],
-};
-
 export default function Home() {
   return (
     <div className="flex flex-col">
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(homeJsonLd) }} />
       <section className="relative py-20 lg:py-32 overflow-hidden bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <div className="text-center lg:text-left lg:max-w-2xl">
