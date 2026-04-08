@@ -647,6 +647,11 @@ export const allStyles: YogaStyle[] = [
       { country: "UAE", flag: "🇦🇪", level: "medium" },
       { country: "Brazil", flag: "🇧🇷", level: "medium" },
     ],
+    images: [
+      { id: "1506126613572-2f6e23c4e9b2", alt: "Foundational hatha yoga pose on a mat", credit: "Unsplash" },
+      { id: "1544367567-0f2fcb009e0b", alt: "Gentle hatha yoga class with instructor", credit: "Unsplash" },
+      { id: "1593811167562-9cef47bfc4d7", alt: "Mindful hatha practice at sunrise", credit: "Unsplash" },
+    ],
   },
   {
     slug: "vinyasa",
@@ -696,6 +701,11 @@ export const allStyles: YogaStyle[] = [
       { country: "Germany", flag: "🇩🇪", level: "high" },
       { country: "France", flag: "🇫🇷", level: "medium" },
       { country: "Brazil", flag: "🇧🇷", level: "medium" },
+    ],
+    images: [
+      { id: "1571019614242-c5c5dee9f50b", alt: "Vinyasa flow yoga sequence in studio", credit: "Unsplash" },
+      { id: "1518611012118-696072aa579a", alt: "Dynamic vinyasa yoga movement", credit: "Unsplash" },
+      { id: "1545205597-3d9d02c29597", alt: "Breath-linked yoga flow outdoors", credit: "Unsplash" },
     ],
   },
   {
@@ -747,6 +757,11 @@ export const allStyles: YogaStyle[] = [
       { country: "Brazil", flag: "🇧🇷", level: "low" },
       { country: "Australia", flag: "🇦🇺", level: "low" },
     ],
+    images: [
+      { id: "1507003211169-0a1dd7228f2d", alt: "Classical yoga pose in ashram setting", credit: "Unsplash" },
+      { id: "1599901860904-17e6ed8a3b44", alt: "Sivananda yoga sun salutation", credit: "Unsplash" },
+      { id: "1506905925346-21bda4d32df4", alt: "Lotus meditation in classical yoga", credit: "Unsplash" },
+    ],
   },
   {
     slug: "kripalu",
@@ -795,6 +810,11 @@ export const allStyles: YogaStyle[] = [
       { country: "Sweden", flag: "🇸🇪", level: "low" },
       { country: "India", flag: "🇮🇳", level: "low" },
     ],
+    images: [
+      { id: "1524901548305-08eeddc35080", alt: "Gentle kripalu yoga practice indoors", credit: "Unsplash" },
+      { id: "1560185007-cde9a972ca13", alt: "Mindful self-inquiry yoga practice", credit: "Unsplash" },
+      { id: "1574680096145-d05b474e2155", alt: "Compassionate yoga awareness session", credit: "Unsplash" },
+    ],
   },
   {
     slug: "anusara",
@@ -842,6 +862,11 @@ export const allStyles: YogaStyle[] = [
       { country: "Netherlands", flag: "🇳🇱", level: "low" },
       { country: "Brazil", flag: "🇧🇷", level: "low" },
       { country: "Japan", flag: "🇯🇵", level: "low" },
+    ],
+    images: [
+      { id: "1552196563-d9083a7980af", alt: "Heart-centred yoga alignment pose", credit: "Unsplash" },
+      { id: "1579722821273-0f6c7d44362f", alt: "Anusara yoga open heart backbend", credit: "Unsplash" },
+      { id: "1545389336-cf090694435a", alt: "Precise alignment yoga practice", credit: "Unsplash" },
     ],
   },
   {
@@ -892,6 +917,11 @@ export const allStyles: YogaStyle[] = [
       { country: "Canada", flag: "🇨🇦", level: "low" },
       { country: "France", flag: "🇫🇷", level: "low" },
     ],
+    images: [
+      { id: "1556742049-0cfed4f6a45d", alt: "Ananda yoga with affirmation practice", credit: "Unsplash" },
+      { id: "1499728603263-13726abce5fd", alt: "Peaceful yoga energy awareness session", credit: "Unsplash" },
+      { id: "1512290923902-8a9f81dc236c", alt: "Gentle yoga with inward focus", credit: "Unsplash" },
+    ],
   },
   {
     slug: "yoga-nidra",
@@ -940,6 +970,11 @@ export const allStyles: YogaStyle[] = [
       { country: "Canada", flag: "🇨🇦", level: "medium" },
       { country: "UAE", flag: "🇦🇪", level: "medium" },
       { country: "France", flag: "🇫🇷", level: "low" },
+    ],
+    images: [
+      { id: "1531454270768-6e4b474e2155", alt: "Yoga nidra guided relaxation lying down", credit: "Unsplash" },
+      { id: "1588286840104-8957b019727f", alt: "Deep rest yoga nidra practice", credit: "Unsplash" },
+      { id: "1508672019048-c8b4bef9e5af", alt: "Peaceful yogic sleep meditation", credit: "Unsplash" },
     ],
   },
   {
@@ -990,6 +1025,11 @@ export const allStyles: YogaStyle[] = [
       { country: "Netherlands", flag: "🇳🇱", level: "medium" },
       { country: "UAE", flag: "🇦🇪", level: "low" },
     ],
+    images: [
+      { id: "1601925260268-2f3bf6ba61eb", alt: "AcroYoga partner balance pose", credit: "Unsplash" },
+      { id: "1517637382994-ca6d7b994f54", alt: "AcroYoga base and flyer outdoors", credit: "Unsplash" },
+      { id: "1599901860904-17e6ed8a3b44", alt: "Partner acrobatic yoga trust exercise", credit: "Unsplash" },
+    ],
   },
   {
     slug: "integral",
@@ -1038,6 +1078,11 @@ export const allStyles: YogaStyle[] = [
       { country: "Brazil", flag: "🇧🇷", level: "low" },
       { country: "Australia", flag: "🇦🇺", level: "low" },
       { country: "France", flag: "🇫🇷", level: "low" },
+    ],
+    images: [
+      { id: "1499728603263-13726abce5fd", alt: "Integral yoga community class", credit: "Unsplash" },
+      { id: "1524901548305-08eeddc35080", alt: "Gentle integral yoga practice", credit: "Unsplash" },
+      { id: "1506905925346-21bda4d32df4", alt: "Integral yoga with meditation and chanting", credit: "Unsplash" },
     ],
   },
 ];
