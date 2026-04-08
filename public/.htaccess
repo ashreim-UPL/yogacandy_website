@@ -1,10 +1,13 @@
 Options -Indexes
 RewriteEngine On
 
-# Remove trailing slashes (except root)
-RewriteRule ^(.+)/$ /$1 [R=301,L]
+# Force HTTPS
+RewriteCond %{HTTPS} off
+RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
 
-# Serve .html file if it exists (takes priority over same-named directory)
+# With trailingSlash:true, Next.js generates dir/index.html — Apache serves these natively.
+# Only needed: rewrite extensionless paths to .html when no directory exists (rare fallback)
 RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
 RewriteCond %{DOCUMENT_ROOT}%{REQUEST_URI}.html -f
 RewriteRule ^(.+?)$ /$1.html [L]

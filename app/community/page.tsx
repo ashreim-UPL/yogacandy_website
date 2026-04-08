@@ -1,4 +1,4 @@
-import InstagramPosts from "@/components/InstagramPosts";
+import InstagramFeed from "@/components/InstagramFeed";
 
 function parseEventDate(dateStr: string): { month: string; day: string } {
   const d = new Date(dateStr);
@@ -167,7 +167,7 @@ export default function CommunityPage() {
         </div>
 
         <div className="mt-16">
-          <InstagramPosts />
+          <InstagramFeed />
         </div>
       </div>
     </div>
