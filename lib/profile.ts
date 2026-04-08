@@ -6,10 +6,13 @@ type SessionUser = {
   user_metadata?: Record<string, unknown> | null;
 };
 
-export async function syncCurrentUserProfile(user: SessionUser) {
+export async function syncCurrentUserProfile(
+  user: SessionUser,
+  overrides?: { role?: 'student' | 'teacher' },
+) {
   const metadata = user.user_metadata ?? {};
   const fullName = typeof metadata.full_name === 'string' ? metadata.full_name : null;
-  const role = metadata.role === 'teacher' ? 'teacher' : 'student';
+  const role = overrides?.role ?? (metadata.role === 'teacher' ? 'teacher' : 'student');
   const city = typeof metadata.city === 'string' ? metadata.city : null;
   const country = typeof metadata.country === 'string' ? metadata.country : null;
 

@@ -11,7 +11,9 @@ export default function AuthCallbackPage() {
     supabase.auth.getSession().then(async ({ data }) => {
       const session = data.session;
       if (session?.user) {
-        await syncCurrentUserProfile(session.user);
+        const params = new URLSearchParams(window.location.search);
+        const role = params.get('role') === 'teacher' ? 'teacher' : params.get('role') === 'student' ? 'student' : undefined;
+        await syncCurrentUserProfile(session.user, role ? { role } : undefined);
       }
 
       if (!mounted) return;
