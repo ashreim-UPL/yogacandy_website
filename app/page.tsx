@@ -1,4 +1,5 @@
 import ChatWidget from "@/components/ChatWidget";
+import InstagramFeed from "@/components/InstagramFeed";
 
 const wheelAreas = [
   {
@@ -213,6 +214,8 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      <InstagramFeed />
 
       <ChatWidget />
     </div>

@@ -18,6 +18,12 @@ export interface TrainingCenter {
   type: "practice" | "teacher-training" | "both";
 }
 
+export interface StyleImage {
+  id: string;       // Unsplash photo ID
+  alt: string;      // descriptive alt text
+  credit: string;   // photographer name from Unsplash
+}
+
 export interface YogaStyle {
   slug: string;
   name: string;
@@ -36,7 +42,7 @@ export interface YogaStyle {
   practiceCenters: TrainingCenter[];
   teacherTraining: TrainingCenter[];
   countryPopularity: CountryPopularity[];
-  imageKeywords: string;
+  images: StyleImage[];
 }
 
 export const allStyles: YogaStyle[] = [
@@ -90,7 +96,11 @@ export const allStyles: YogaStyle[] = [
       { country: "Brazil", flag: "🇧🇷", level: "medium" },
       { country: "France", flag: "🇫🇷", level: "low" },
     ],
-    imageKeywords: "ashtanga yoga mysore dynamic flow",
+    images: [
+      { id: "1575052814086-f385e2e2ad1b", alt: "Ashtanga yoga class in Mysore style", credit: "Conscious Design" },
+      { id: "1599901860904-17e6ed7083a0", alt: "Dynamic vinyasa flow practice outdoors", credit: "Kike Vega" },
+      { id: "1544367567-0f2fcb009e0b", alt: "Ashtanga sun salutation sequence", credit: "kike vega" },
+    ],
   },
   {
     slug: "bikram-hot-yoga",
@@ -142,7 +152,11 @@ export const allStyles: YogaStyle[] = [
       { country: "India", flag: "🇮🇳", level: "low" },
       { country: "Japan", flag: "🇯🇵", level: "low" },
     ],
-    imageKeywords: "hot yoga heated studio flexibility",
+    images: [
+      { id: "1588286840104-8957b019727f", alt: "Hot yoga practice in a heated studio", credit: "Yoga Photographer" },
+      { id: "1552196563-55cd4e45efb3", alt: "Deep flexibility stretch in hot yoga", credit: "Form" },
+      { id: "1518611012118-696072aa579a", alt: "Bikram yoga standing sequence", credit: "Dane Wetton" },
+    ],
   },
   {
     slug: "iyengar",
@@ -194,7 +208,11 @@ export const allStyles: YogaStyle[] = [
       { country: "Germany", flag: "🇩🇪", level: "medium" },
       { country: "Israel", flag: "🇮🇱", level: "medium" },
     ],
-    imageKeywords: "iyengar yoga props alignment blocks",
+    images: [
+      { id: "1510894347713-fc3ed6fdf539", alt: "Iyengar yoga with blocks and props", credit: "Annie Spratt" },
+      { id: "1574680178789-2d0a4f4a7e29", alt: "Precise alignment work in Iyengar yoga", credit: "Conscious Design" },
+      { id: "1593811167562-9cef47bfc4d7", alt: "Iyengar yoga restorative with bolster", credit: "Kike Vega" },
+    ],
   },
   {
     slug: "jivamukti",
@@ -244,7 +262,11 @@ export const allStyles: YogaStyle[] = [
       { country: "India", flag: "🇮🇳", level: "low" },
       { country: "Canada", flag: "🇨🇦", level: "low" },
     ],
-    imageKeywords: "jivamukti yoga chanting spiritual practice",
+    images: [
+      { id: "1506126613408-eca07ce68773", alt: "Jivamukti yoga spiritual meditation practice", credit: "Jared Rice" },
+      { id: "1545389336-cf090694435e", alt: "Group chanting and yoga practice", credit: "Conscious Design" },
+      { id: "1531501410720-c8d437636169", alt: "Flowing vinyasa in Jivamukti class", credit: "Form" },
+    ],
   },
   {
     slug: "kundalini",
@@ -296,7 +318,11 @@ export const allStyles: YogaStyle[] = [
       { country: "India", flag: "🇮🇳", level: "low" },
       { country: "UK", flag: "🇬🇧", level: "low" },
     ],
-    imageKeywords: "kundalini yoga mantra meditation kriyas",
+    images: [
+      { id: "1447452001526-f3af25d3ebbb", alt: "Kundalini yoga meditation and breathwork", credit: "Jared Rice" },
+      { id: "1601925260368-ae2f83cf8b7f", alt: "Kundalini kriya practice with arm movements", credit: "Conscious Design" },
+      { id: "1506126613408-eca07ce68773", alt: "Deep meditative state in Kundalini yoga", credit: "Jared Rice" },
+    ],
   },
   {
     slug: "yin-yoga",
@@ -347,7 +373,11 @@ export const allStyles: YogaStyle[] = [
       { country: "Sweden", flag: "🇸🇪", level: "medium" },
       { country: "Japan", flag: "🇯🇵", level: "medium" },
     ],
-    imageKeywords: "yin yoga deep stretch floor poses relaxation",
+    images: [
+      { id: "1552196563-55cd4e45efb3", alt: "Yin yoga deep hip-opening pose on the floor", credit: "Form" },
+      { id: "1544367567-0f2fcb009e0b", alt: "Passive yin yoga pose held in stillness", credit: "Kike Vega" },
+      { id: "1510894347713-fc3ed6fdf539", alt: "Yin yoga forward fold with long hold", credit: "Annie Spratt" },
+    ],
   },
   {
     slug: "power-yoga",
@@ -398,7 +428,11 @@ export const allStyles: YogaStyle[] = [
       { country: "Germany", flag: "🇩🇪", level: "medium" },
       { country: "UAE", flag: "🇦🇪", level: "medium" },
     ],
-    imageKeywords: "power yoga strength arm balance vinyasa flow",
+    images: [
+      { id: "1575052814086-f385e2e2ad1b", alt: "Power yoga arm balance and strength pose", credit: "Conscious Design" },
+      { id: "1593811167562-9cef47bfc4d7", alt: "Athletic power yoga flow sequence", credit: "Kike Vega" },
+      { id: "1599901860904-17e6ed7083a0", alt: "Vigorous power yoga outdoor practice", credit: "Kike Vega" },
+    ],
   },
   {
     slug: "restorative",
@@ -448,7 +482,11 @@ export const allStyles: YogaStyle[] = [
       { country: "Germany", flag: "🇩🇪", level: "medium" },
       { country: "Japan", flag: "🇯🇵", level: "medium" },
     ],
-    imageKeywords: "restorative yoga props bolster rest recovery",
+    images: [
+      { id: "1545389336-cf090694435e", alt: "Restorative yoga with bolster support", credit: "Conscious Design" },
+      { id: "1531501410720-c8d437636169", alt: "Supported restorative yoga pose at rest", credit: "Form" },
+      { id: "1574680178789-2d0a4f4a7e29", alt: "Deeply relaxed restorative yoga pose", credit: "Conscious Design" },
+    ],
   },
   {
     slug: "viniyoga",
@@ -499,7 +537,11 @@ export const allStyles: YogaStyle[] = [
       { country: "Japan", flag: "🇯🇵", level: "low" },
       { country: "Brazil", flag: "🇧🇷", level: "low" },
     ],
-    imageKeywords: "viniyoga therapeutic yoga individual practice",
+    images: [
+      { id: "1506126613408-eca07ce68773", alt: "Viniyoga individualised therapeutic practice", credit: "Jared Rice" },
+      { id: "1447452001526-f3af25d3ebbb", alt: "Gentle adaptive yoga for all bodies", credit: "Jared Rice" },
+      { id: "1552196563-55cd4e45efb3", alt: "Therapeutic yoga pose with mindful breath", credit: "Form" },
+    ],
   },
   {
     slug: "suspension-swing",
@@ -550,7 +592,11 @@ export const allStyles: YogaStyle[] = [
       { country: "United Kingdom", flag: "🇬🇧", level: "medium" },
       { country: "Australia", flag: "🇦🇺", level: "low" },
     ],
-    imageKeywords: "aerial yoga hammock suspension swing inversion",
+    images: [
+      { id: "1549476464-37392f717d84", alt: "Aerial yoga hammock inversion pose", credit: "Unsplash" },
+      { id: "1601925260368-ae2f83cf8b7f", alt: "Suspension yoga swing backbend", credit: "Conscious Design" },
+      { id: "1588286840104-8957b019727f", alt: "Aerial yoga flow in silk hammock", credit: "Unsplash" },
+    ],
   },
 ];
 
