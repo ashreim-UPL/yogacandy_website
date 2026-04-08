@@ -45,6 +45,7 @@ const SSO_PROVIDERS = [
 function SignupForm() {
   const searchParams = useSearchParams();
   const defaultRole = searchParams.get('role') === 'teacher' ? 'teacher' : 'student';
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim() ?? '';
 
   const [mode, setMode] = useState<'signup' | 'login'>('signup');
   const [isTeacher, setIsTeacher] = useState(defaultRole === 'teacher');
@@ -55,25 +56,59 @@ function SignupForm() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [oauthAvailability, setOauthAvailability] = useState<{
+    google?: boolean;
+    apple?: boolean;
+    facebook?: boolean;
+  } | null>(null);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
       if (data.session) window.location.href = '/';
     });
+
+    if (!supabaseUrl) return;
+
+    fetch(`${supabaseUrl}/auth/v1/settings`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (!data) return;
+        setOauthAvailability({
+          google: Boolean(data.external?.google?.enabled),
+          apple: Boolean(data.external?.apple?.enabled),
+          facebook: Boolean(data.external?.facebook?.enabled),
+        });
+      })
+      .catch(() => {
+        setOauthAvailability(null);
+      });
   }, []);
 
   async function handleSSO(provider: 'google' | 'apple' | 'facebook') {
+    const providerEnabled = oauthAvailability?.[provider];
+    if (providerEnabled === false) {
+      setError(
+        `${provider.charAt(0).toUpperCase() + provider.slice(1)} sign-in is not enabled in Supabase yet. Turn it on in Authentication > Providers and add ${window.location.origin}/auth/callback to the redirect URLs.`,
+      );
+      return;
+    }
+
     setLoading(true);
     setError(null);
     const { error: authError } = await supabase.auth.signInWithOAuth({
       provider,
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
-        queryParams: { role: isTeacher ? 'teacher' : 'student' },
+        redirectTo: `${window.location.origin}/auth/callback?role=${isTeacher ? 'teacher' : 'student'}`,
       },
     });
     if (authError) {
-      setError(authError.message);
+      if (authError.message.toLowerCase().includes('provider') && authError.message.toLowerCase().includes('not enabled')) {
+        setError(
+          `${provider.charAt(0).toUpperCase() + provider.slice(1)} is disabled in the Supabase project. Enable it in Authentication > Providers and keep ${window.location.origin}/auth/callback in the redirect list.`,
+        );
+      } else {
+        setError(authError.message);
+      }
       setLoading(false);
     }
   }
@@ -154,7 +189,7 @@ function SignupForm() {
               <button
                 key={provider.id}
                 onClick={() => handleSSO(provider.id as 'google' | 'apple' | 'facebook')}
-                disabled={loading}
+                disabled={loading || oauthAvailability?.[provider.id as 'google' | 'apple' | 'facebook'] === false}
                 className={`w-full flex items-center justify-center gap-3 px-4 py-3 rounded-xl font-semibold text-sm transition-all disabled:opacity-50 ${provider.className}`}
               >
                 {provider.icon}
@@ -162,6 +197,10 @@ function SignupForm() {
               </button>
             ))}
           </div>
+
+          <p className="text-xs text-gray-500 mb-4 leading-relaxed">
+            Google sign-in requires the provider to be enabled in Supabase. If it is not, the button will still show the exact setup problem instead of failing silently.
+          </p>
 
           <div className="relative flex items-center gap-3 mb-6">
             <div className="flex-grow h-px bg-gray-200" />
