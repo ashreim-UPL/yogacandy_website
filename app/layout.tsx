@@ -3,7 +3,6 @@ import { LocationProvider } from "@/app/context/LocationContext";
 import Header from "@/components/Header";
 import Link from "next/link";
 import type { Metadata } from "next";
-import Script from "next/script";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
@@ -61,12 +60,14 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
-      <body className="min-h-full flex flex-col bg-white text-black font-sans">
-        <Script
-          strategy="beforeInteractive"
+      <head>
+        <script
+          async
           src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_CLIENT_ID}`}
           crossOrigin="anonymous"
         />
+      </head>
+      <body className="min-h-full flex flex-col bg-white text-black font-sans">
         <LocationProvider>
           <Header />
           <main className="flex-grow">{children}</main>
