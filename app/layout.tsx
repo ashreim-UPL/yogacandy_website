@@ -3,6 +3,7 @@ import { LocationProvider } from "@/app/context/LocationContext";
 import Header from "@/components/Header";
 import Link from "next/link";
 import type { Metadata } from "next";
+import Script from "next/script";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
@@ -17,6 +18,7 @@ const geistMono = Geist_Mono({
 });
 
 const BASE_URL = "https://yogacandy.info";
+const ADSENSE_CLIENT_ID = process.env.NEXT_PUBLIC_ADSENSE_CLIENT_ID ?? "ca-pub-6414589325394911";
 
 export const metadata: Metadata = {
   metadataBase: new URL(BASE_URL),
@@ -60,6 +62,11 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col bg-white text-black font-sans">
+        <Script
+          strategy="beforeInteractive"
+          src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_CLIENT_ID}`}
+          crossOrigin="anonymous"
+        />
         <LocationProvider>
           <Header />
           <main className="flex-grow">{children}</main>
