@@ -249,6 +249,8 @@ export default function Home() {
         </div>
       </section>
 
+      <InstagramFeed />
+
       <ChatWidget />
     </div>
   );

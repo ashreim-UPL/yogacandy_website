@@ -222,21 +222,22 @@ export default async function StylePage({ params }: { params: Promise<{ slug: st
 
         <section>
           <h2 className="text-2xl font-bold mb-6">Gallery</h2>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-            {[1, 2, 3, 4, 5, 6].map((n) => (
-              <div
-                key={n}
-                className={`aspect-square rounded-2xl bg-gradient-to-br ${style.gradient} ${
-                  n % 2 === 0 ? "opacity-60" : "opacity-80"
-                } flex items-center justify-center`}
-              >
-                <span className="text-4xl opacity-50">{style.icon}</span>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {style.images.map((img) => (
+              <div key={img.id} className="relative aspect-[4/3] rounded-2xl overflow-hidden group">
+                <img
+                  src={`https://images.unsplash.com/photo-${img.id}?auto=format&fit=crop&w=800&q=80`}
+                  alt={img.alt}
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  loading="lazy"
+                />
+                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-300 rounded-2xl" />
+                <div className="absolute bottom-2 right-3 text-[10px] text-white/60 opacity-0 group-hover:opacity-100 transition-opacity">
+                  📷 {img.credit} / Unsplash
+                </div>
               </div>
             ))}
           </div>
-          <p className="text-xs text-gray-400 mt-3 text-center">
-            Gallery images coming soon - add photos to /public/styles/{style.slug}/
-          </p>
         </section>
 
         <section className="bg-black text-white rounded-3xl p-10 text-center">
