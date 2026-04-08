@@ -1,0 +1,43 @@
+name: Generate Yoga Articles
+
+on:
+  schedule:
+    # Run every Monday and Thursday at 08:00 UTC
+    - cron: '0 8 * * 1,4'
+  workflow_dispatch:
+    inputs:
+      topic:
+        description: 'Optional specific topic to write about'
+        required: false
+      region:
+        description: 'Target region (ISO code or global)'
+        required: false
+        default: 'global'
+      count:
+        description: 'Number of articles to generate'
+        required: false
+        default: '3'
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: pip install anthropic requests supabase python-slugify
+
+      - name: Generate articles with Claude
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          TOPIC: ${{ github.event.inputs.topic || '' }}
+          REGION: ${{ github.event.inputs.region || 'global' }}
+          COUNT: ${{ github.event.inputs.count || '3' }}
+        run: python scripts/generate_articles.py

@@ -4,6 +4,8 @@ import LocationBanner from "@/components/LocationBanner";
 import NearbyStudios from "@/components/NearbyStudios";
 import RegionalArticles from "@/components/RegionalArticles";
 import StyleRecommender from "@/components/StyleRecommender";
+import AffiliateLink from "@/components/AffiliateLink";
+import AdSlot from "@/components/AdSlot";
 import Link from "next/link";
 import { wheelAxes } from "@/app/data/wheel";
 import type { ReactNode } from "react";
@@ -210,6 +212,71 @@ export default function Home() {
       </section>
 
       <RegionalArticles />
+
+      {/* Affiliate / Gear Section */}
+      <section className="py-20 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <span className="inline-block text-xs font-bold uppercase tracking-widest text-orange-600 bg-orange-50 px-3 py-1 rounded-full mb-4 border border-orange-100">
+              Trusted Gear
+            </span>
+            <h2 className="text-3xl font-bold mb-4">What the Community Uses</h2>
+            <p className="text-gray-600 max-w-2xl mx-auto">
+              Hand-picked yoga equipment recommended by our teacher community. We may earn a small commission — at no extra cost to you.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-12">
+            {[
+              {
+                brand: "Manduka",
+                href: "https://www.manduka.com/?ref=yogacandy",
+                partner: "manduka",
+                title: "PRO Yoga Mat",
+                desc: "The gold-standard mat trusted by teachers worldwide. Lifetime guarantee.",
+                tag: "Best for: All styles",
+                color: "bg-slate-50 border-slate-200",
+              },
+              {
+                brand: "Alo Yoga",
+                href: "https://www.aloyoga.com/?ref=yogacandy",
+                partner: "alo-yoga",
+                title: "Performance Apparel",
+                desc: "Studio-to-street clothing designed to move with your practice.",
+                tag: "Best for: Hot & Vinyasa",
+                color: "bg-rose-50 border-rose-200",
+              },
+              {
+                brand: "Hugger Mugger",
+                href: "https://www.huggermugger.com/?ref=yogacandy",
+                partner: "hugger-mugger",
+                title: "Props & Blocks",
+                desc: "Quality blocks, straps, and bolsters for every level of practitioner.",
+                tag: "Best for: Iyengar & Yin",
+                color: "bg-amber-50 border-amber-200",
+              },
+            ].map((item) => (
+              <AffiliateLink
+                key={item.partner}
+                href={item.href}
+                partner={item.partner}
+                page="/"
+                className={`block p-6 rounded-2xl border ${item.color} hover:scale-[1.02] hover:shadow-md transition-all`}
+              >
+                <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-1">{item.brand}</p>
+                <h3 className="font-bold text-lg mb-2">{item.title}</h3>
+                <p className="text-sm text-gray-600 mb-4">{item.desc}</p>
+                <span className="text-[10px] font-bold uppercase tracking-widest bg-white/70 px-2 py-1 rounded border border-current opacity-70">
+                  {item.tag}
+                </span>
+              </AffiliateLink>
+            ))}
+          </div>
+
+          <AdSlot slot="homepage-gear" format="horizontal" className="max-w-4xl mx-auto" />
+        </div>
+      </section>
+
       <InstagramFeed />
 
       <section className="py-20 bg-black text-white">
@@ -236,8 +303,6 @@ export default function Home() {
           </div>
         </div>
       </section>
-
-      <InstagramFeed />
 
       <ChatWidget />
     </div>
