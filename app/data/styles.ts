@@ -647,7 +647,6 @@ export const allStyles: YogaStyle[] = [
       { country: "UAE", flag: "🇦🇪", level: "medium" },
       { country: "Brazil", flag: "🇧🇷", level: "medium" },
     ],
-    imageKeywords: "hatha yoga beginners foundations gentle class",
   },
   {
     slug: "vinyasa",
@@ -698,7 +697,6 @@ export const allStyles: YogaStyle[] = [
       { country: "France", flag: "🇫🇷", level: "medium" },
       { country: "Brazil", flag: "🇧🇷", level: "medium" },
     ],
-    imageKeywords: "vinyasa flow yoga breath movement sequence",
   },
   {
     slug: "sivananda",
@@ -749,7 +747,6 @@ export const allStyles: YogaStyle[] = [
       { country: "Brazil", flag: "🇧🇷", level: "low" },
       { country: "Australia", flag: "🇦🇺", level: "low" },
     ],
-    imageKeywords: "sivananda yoga classical holistic ashram India",
   },
   {
     slug: "kripalu",
@@ -798,7 +795,6 @@ export const allStyles: YogaStyle[] = [
       { country: "Sweden", flag: "🇸🇪", level: "low" },
       { country: "India", flag: "🇮🇳", level: "low" },
     ],
-    imageKeywords: "kripalu yoga compassion meditation awareness retreat",
   },
   {
     slug: "anusara",
@@ -847,7 +843,6 @@ export const allStyles: YogaStyle[] = [
       { country: "Brazil", flag: "🇧🇷", level: "low" },
       { country: "Japan", flag: "🇯🇵", level: "low" },
     ],
-    imageKeywords: "anusara yoga alignment heart centred philosophy",
   },
   {
     slug: "ananda",
@@ -897,7 +892,6 @@ export const allStyles: YogaStyle[] = [
       { country: "Canada", flag: "🇨🇦", level: "low" },
       { country: "France", flag: "🇫🇷", level: "low" },
     ],
-    imageKeywords: "ananda yoga awareness energy affirmation meditation",
   },
   {
     slug: "yoga-nidra",
@@ -947,7 +941,6 @@ export const allStyles: YogaStyle[] = [
       { country: "UAE", flag: "🇦🇪", level: "medium" },
       { country: "France", flag: "🇫🇷", level: "low" },
     ],
-    imageKeywords: "yoga nidra guided relaxation sleep rest meditation",
   },
   {
     slug: "acro-yoga",
@@ -997,7 +990,6 @@ export const allStyles: YogaStyle[] = [
       { country: "Netherlands", flag: "🇳🇱", level: "medium" },
       { country: "UAE", flag: "🇦🇪", level: "low" },
     ],
-    imageKeywords: "acro yoga partner balance acrobatics trust community",
   },
   {
     slug: "integral",
@@ -1047,7 +1039,6 @@ export const allStyles: YogaStyle[] = [
       { country: "Australia", flag: "🇦🇺", level: "low" },
       { country: "France", flag: "🇫🇷", level: "low" },
     ],
-    imageKeywords: "integral yoga satchidananda peace holistic chanting",
   },
 ];
 
