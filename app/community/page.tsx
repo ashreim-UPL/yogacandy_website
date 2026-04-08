@@ -1,3 +1,5 @@
+import InstagramPosts from "@/components/InstagramPosts";
+
 function parseEventDate(dateStr: string): { month: string; day: string } {
   const d = new Date(dateStr);
   if (isNaN(d.getTime())) return { month: "???", day: "??" };
@@ -49,7 +51,6 @@ export default function CommunityPage() {
         </header>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
-          {/* Registration Section */}
           <section>
             <h2 className="text-3xl font-bold mb-8">Join the Movement</h2>
             <div className="space-y-8">
@@ -116,7 +117,6 @@ export default function CommunityPage() {
             </div>
           </section>
 
-          {/* Events Section */}
           <section>
             <div className="flex justify-between items-center mb-8">
               <h2 className="text-3xl font-bold">Upcoming Events</h2>
@@ -140,7 +140,9 @@ export default function CommunityPage() {
                           <h4 className="font-bold text-lg group-hover:text-blue-600 transition-colors leading-tight">
                             {event.title}
                           </h4>
-                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase flex-shrink-0 ${event.priceColor}`}>
+                          <span
+                            className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase flex-shrink-0 ${event.priceColor}`}
+                          >
                             {event.price}
                           </span>
                         </div>
@@ -162,6 +164,10 @@ export default function CommunityPage() {
               </button>
             </div>
           </section>
+        </div>
+
+        <div className="mt-16">
+          <InstagramPosts />
         </div>
       </div>
     </div>

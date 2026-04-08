@@ -1,5 +1,7 @@
 "use client";
-import { useState, useEffect } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { useState } from "react";
 
 const navLinks = [
   { href: "/", label: "Home" },
@@ -10,11 +12,7 @@ const navLinks = [
 
 export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [currentPath, setCurrentPath] = useState("");
-
-  useEffect(() => {
-    setCurrentPath(window.location.pathname);
-  }, []);
+  const currentPath = usePathname();
 
   const isActive = (href: string) => {
     if (href.includes("#")) return false;
@@ -26,14 +24,14 @@ export default function Header() {
     <header className="border-b bg-white/90 backdrop-blur-sm sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
         {/* Logo */}
-        <a href="/" className="flex items-center group">
+        <Link href="/" className="flex items-center group">
           <img src="/yogacandy-banner.svg" alt="YogaCandy" className="h-10 group-hover:scale-105 transition-transform" />
-        </a>
+        </Link>
 
         {/* Desktop nav */}
         <nav className="hidden md:flex gap-8 text-sm font-medium">
           {navLinks.map(({ href, label }) => (
-            <a
+            <Link
               key={href}
               href={href}
               className={`transition-colors relative py-1 ${
@@ -43,19 +41,19 @@ export default function Header() {
               }`}
             >
               {label}
-            </a>
+            </Link>
           ))}
         </nav>
 
         {/* Desktop auth buttons */}
         <div className="hidden md:flex items-center gap-4">
           <button className="text-sm font-medium hover:text-blue-600 transition-colors">Login</button>
-          <a
+          <Link
             href="/community"
             className="bg-black text-white px-4 py-2 rounded-full text-sm font-medium hover:bg-gray-800 transition-colors"
           >
             Join Community
-          </a>
+          </Link>
         </div>
 
         {/* Mobile hamburger */}
@@ -82,7 +80,7 @@ export default function Header() {
         <div className="md:hidden border-t bg-white shadow-lg">
           <nav className="flex flex-col px-4 py-4 gap-1 text-sm font-medium">
             {navLinks.map(({ href, label }) => (
-              <a
+              <Link
                 key={href}
                 href={href}
                 className={`py-3 px-2 rounded-lg transition-colors ${
@@ -91,19 +89,19 @@ export default function Header() {
                 onClick={() => setMobileMenuOpen(false)}
               >
                 {label}
-              </a>
+              </Link>
             ))}
             <div className="border-t mt-2 pt-4 flex flex-col gap-2">
               <button className="text-left py-2 px-2 font-medium hover:text-blue-600 transition-colors">
                 Login
               </button>
-              <a
+              <Link
                 href="/community"
                 className="bg-black text-white px-4 py-3 rounded-full text-sm font-medium hover:bg-gray-800 transition-colors text-center"
                 onClick={() => setMobileMenuOpen(false)}
               >
                 Join Community
-              </a>
+              </Link>
             </div>
           </nav>
         </div>

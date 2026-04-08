@@ -32,7 +32,7 @@ export default function InstagramFeed() {
           </a>
         </div>
 
-        {/* Behold widget */}
+        {/* Behold widget — auto-syncs with @yogacandyae */}
         {/* @ts-expect-error custom web component */}
         <behold-widget feed-id="p0uweOe5IxUlD6kjVDMk" />
       </div>

@@ -1,8 +1,28 @@
+import type { Metadata } from "next";
 import { allStyles, getStyleBySlug, type FocusScores } from "@/app/data/styles";
+import RegionalInsight from "@/components/RegionalInsight";
+import StudioList from "@/components/StudioList";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 
 export function generateStaticParams() {
   return allStyles.map((style) => ({ slug: style.slug }));
+}
+
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const { slug } = await params;
+  const style = getStyleBySlug(slug);
+  if (!style) return {};
+  return {
+    title: `${style.name} Yoga`,
+    description: style.tagline,
+    openGraph: {
+      title: `${style.name} Yoga - YogaCandy`,
+      description: style.tagline,
+      url: `https://yogacandy.info/styles/${slug}`,
+    },
+    alternates: { canonical: `https://yogacandy.info/styles/${slug}` },
+  };
 }
 
 const scoreLabels: { key: keyof FocusScores; label: string; icon: string }[] = [
@@ -12,14 +32,6 @@ const scoreLabels: { key: keyof FocusScores; label: string; icon: string }[] = [
   { key: "breath", label: "Breath", icon: "🌬️" },
   { key: "mind", label: "Mind", icon: "🧠" },
 ];
-
-const levelColors: Record<string, string> = {
-  Beginner: "bg-green-100 text-green-700 border-green-200",
-  "All Levels": "bg-blue-100 text-blue-700 border-blue-200",
-  Intermediate: "bg-orange-100 text-orange-700 border-orange-200",
-  "Intermediate/Advanced": "bg-red-100 text-red-700 border-red-200",
-  Advanced: "bg-red-100 text-red-700 border-red-200",
-};
 
 const popularityConfig = {
   high: { label: "Very Popular", color: "bg-green-500", width: "w-full" },
@@ -45,26 +57,44 @@ function ScoreBar({ score, description }: { score: number; description: string }
   );
 }
 
+function JsonLd({ style }: { style: NonNullable<ReturnType<typeof getStyleBySlug>> }) {
+  const data = {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    headline: `${style.name} Yoga`,
+    description: style.tagline,
+    url: `https://yogacandy.info/styles/${style.slug}`,
+    publisher: {
+      "@type": "Organization",
+      name: "YogaCandy",
+      url: "https://yogacandy.info",
+    },
+  };
+  return <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }} />;
+}
+
 export default async function StylePage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const style = getStyleBySlug(slug);
   if (!style) notFound();
 
-  const levelColor = levelColors[style.level] ?? "bg-gray-100 text-gray-700 border-gray-200";
-
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Hero */}
+      <JsonLd style={style} />
+
       <section className={`bg-gradient-to-br ${style.gradient} text-white py-20`}>
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-          <a href="/styles" className="inline-flex items-center gap-2 text-white/70 hover:text-white text-sm font-medium mb-8 transition-colors">
+          <Link
+            href="/styles"
+            className="inline-flex items-center gap-2 text-white/70 hover:text-white text-sm font-medium mb-8 transition-colors"
+          >
             ← All Yoga Styles
-          </a>
+          </Link>
           <div className="flex flex-col lg:flex-row lg:items-end gap-6">
             <div className="flex-grow">
               <div className="flex items-center gap-4 mb-4">
                 <span className="text-5xl">{style.icon}</span>
-                <span className={`text-xs font-bold px-3 py-1 rounded-full border uppercase tracking-wider bg-white/20 border-white/30 text-white`}>
+                <span className="text-xs font-bold px-3 py-1 rounded-full border uppercase tracking-wider bg-white/20 border-white/30 text-white">
                   {style.level}
                 </span>
               </div>
@@ -73,28 +103,30 @@ export default async function StylePage({ params }: { params: Promise<{ slug: st
             </div>
             <div className="text-right text-white/70 text-sm shrink-0">
               <div className="font-bold text-white text-base">{style.origin.founder}</div>
-              <div>{style.origin.year} · {style.origin.place}</div>
+              <div>
+                {style.origin.year} · {style.origin.place}
+              </div>
             </div>
           </div>
         </div>
       </section>
 
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-16 space-y-16">
-
-        {/* Description */}
         <section className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100">
           <h2 className="text-2xl font-bold mb-4">About {style.name}</h2>
           <p className="text-gray-600 leading-relaxed text-lg mb-6">{style.description}</p>
           <div className="flex flex-wrap gap-2">
-            {style.benefits.map((b) => (
-              <span key={b} className="bg-gray-50 border border-gray-200 text-gray-700 text-sm px-3 py-1 rounded-full">
-                ✓ {b}
+            {style.benefits.map((benefit) => (
+              <span
+                key={benefit}
+                className="bg-gray-50 border border-gray-200 text-gray-700 text-sm px-3 py-1 rounded-full"
+              >
+                ✓ {benefit}
               </span>
             ))}
           </div>
         </section>
 
-        {/* Focus Scores */}
         <section>
           <h2 className="text-2xl font-bold mb-6">Yoga Wheel Scores</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -105,7 +137,10 @@ export default async function StylePage({ params }: { params: Promise<{ slug: st
                     <span className="text-xl">{icon}</span>
                     <span className="font-bold text-sm uppercase tracking-wider">{label}</span>
                   </div>
-                  <span className="text-2xl font-extrabold text-blue-600">{style.scores[key]}<span className="text-gray-300 font-normal text-lg">/5</span></span>
+                  <span className="text-2xl font-extrabold text-blue-600">
+                    {style.scores[key]}
+                    <span className="text-gray-300 font-normal text-lg">/5</span>
+                  </span>
                 </div>
                 <ScoreBar score={style.scores[key]} description={style.scoreDescriptions[key]} />
               </div>
@@ -113,7 +148,6 @@ export default async function StylePage({ params }: { params: Promise<{ slug: st
           </div>
         </section>
 
-        {/* History */}
         <section className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100">
           <h2 className="text-2xl font-bold mb-4">History & Origins</h2>
           <div className="flex gap-4 mb-6">
@@ -133,18 +167,20 @@ export default async function StylePage({ params }: { params: Promise<{ slug: st
           <p className="text-gray-600 leading-relaxed">{style.history}</p>
         </section>
 
-        {/* Country Popularity */}
         <section>
           <h2 className="text-2xl font-bold mb-6">Global Popularity</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {style.countryPopularity.map((c) => {
-              const config = popularityConfig[c.level];
+            {style.countryPopularity.map((country) => {
+              const config = popularityConfig[country.level];
               return (
-                <div key={c.country} className="bg-white rounded-2xl px-5 py-4 shadow-sm border border-gray-100 flex items-center gap-4">
-                  <span className="text-2xl">{c.flag}</span>
+                <div
+                  key={country.country}
+                  className="bg-white rounded-2xl px-5 py-4 shadow-sm border border-gray-100 flex items-center gap-4"
+                >
+                  <span className="text-2xl">{country.flag}</span>
                   <div className="flex-grow">
                     <div className="flex justify-between items-center mb-1">
-                      <span className="font-medium text-sm">{c.country}</span>
+                      <span className="font-medium text-sm">{country.country}</span>
                       <span className="text-xs text-gray-400 uppercase tracking-wider">{config.label}</span>
                     </div>
                     <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
@@ -157,32 +193,24 @@ export default async function StylePage({ params }: { params: Promise<{ slug: st
           </div>
         </section>
 
-        {/* Training & Teacher Training */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <section className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100">
-            <h2 className="text-xl font-bold mb-6">Where to Practice & Train</h2>
-            <div className="space-y-4">
-              {style.practiceCenters.map((center) => (
-                <div key={center.name} className="flex items-start gap-3 p-3 rounded-xl bg-gray-50 border border-gray-100">
-                  <span className="text-blue-600 mt-0.5">📍</span>
-                  <div>
-                    <div className="font-semibold text-sm">{center.name}</div>
-                    <div className="text-xs text-gray-500 mt-0.5">{center.location}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
+            <h2 className="text-xl font-bold mb-6">Studios & Practice Centres</h2>
+            <StudioList styleName={style.name} fallbackCenters={style.practiceCenters} />
           </section>
 
           <section className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100">
             <h2 className="text-xl font-bold mb-6">Teacher Training</h2>
             <div className="space-y-4">
-              {style.teacherTraining.map((tt) => (
-                <div key={tt.name} className="flex items-start gap-3 p-3 rounded-xl bg-gray-50 border border-gray-100">
+              {style.teacherTraining.map((training) => (
+                <div
+                  key={training.name}
+                  className="flex items-start gap-3 p-3 rounded-xl bg-gray-50 border border-gray-100"
+                >
                   <span className="text-green-600 mt-0.5">🎓</span>
                   <div>
-                    <div className="font-semibold text-sm">{tt.name}</div>
-                    <div className="text-xs text-gray-500 mt-0.5">{tt.location}</div>
+                    <div className="font-semibold text-sm">{training.name}</div>
+                    <div className="text-xs text-gray-500 mt-0.5">{training.location}</div>
                   </div>
                 </div>
               ))}
@@ -190,7 +218,8 @@ export default async function StylePage({ params }: { params: Promise<{ slug: st
           </section>
         </div>
 
-        {/* Gallery */}
+        <RegionalInsight style={style} />
+
         <section>
           <h2 className="text-2xl font-bold mb-6">Gallery</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -211,17 +240,24 @@ export default async function StylePage({ params }: { params: Promise<{ slug: st
           </div>
         </section>
 
-        {/* CTA */}
         <section className="bg-black text-white rounded-3xl p-10 text-center">
           <h2 className="text-2xl font-bold mb-3">Ready to try {style.name}?</h2>
-          <p className="text-gray-400 mb-6">Find events, classes and teachers near you in the YogaCandy community.</p>
+          <p className="text-gray-400 mb-6">
+            Find events, classes and teachers near you in the YogaCandy community.
+          </p>
           <div className="flex flex-wrap gap-4 justify-center">
-            <a href="/community" className="bg-white text-black px-6 py-3 rounded-full font-bold hover:bg-gray-100 transition-colors text-sm">
+            <Link
+              href="/community"
+              className="bg-white text-black px-6 py-3 rounded-full font-bold hover:bg-gray-100 transition-colors text-sm"
+            >
               Find Classes
-            </a>
-            <a href="/styles" className="border border-white/30 text-white px-6 py-3 rounded-full font-bold hover:bg-white/10 transition-colors text-sm">
+            </Link>
+            <Link
+              href="/styles"
+              className="border border-white/30 text-white px-6 py-3 rounded-full font-bold hover:bg-white/10 transition-colors text-sm"
+            >
               Explore Other Styles
-            </a>
+            </Link>
           </div>
         </section>
       </div>
