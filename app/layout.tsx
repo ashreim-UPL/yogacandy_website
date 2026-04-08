@@ -1,5 +1,6 @@
 import { publicSiteConfig } from "@/app/config/public";
 import { LocationProvider } from "@/app/context/LocationContext";
+import CookieConsent from "@/components/CookieConsent";
 import Header from "@/components/Header";
 import Link from "next/link";
 import type { Metadata } from "next";
@@ -100,6 +101,11 @@ export default function RootLayout({
                       For Teachers
                     </Link>
                   </li>
+                  <li>
+                    <Link href="/about" className="hover:text-black">
+                      About Us
+                    </Link>
+                  </li>
                 </ul>
               </div>
               <div>
@@ -116,9 +122,9 @@ export default function RootLayout({
                     </a>
                   </li>
                   <li>
-                    <a href="#" className="hover:text-black">
+                    <Link href="/contact" className="hover:text-black">
                       Contact Us
-                    </a>
+                    </Link>
                   </li>
                   <li>
                     <Link href="/privacy" className="hover:text-black">
@@ -132,6 +138,7 @@ export default function RootLayout({
               &copy; {new Date().getFullYear()} YogaCandy. All rights reserved.
             </div>
           </footer>
+          <CookieConsent />
         </LocationProvider>
       </body>
     </html>
