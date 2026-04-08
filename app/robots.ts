@@ -7,7 +7,7 @@ export default function robots(): MetadataRoute.Robots {
       {
         userAgent: '*',
         allow: '/',
-        disallow: ['/auth/callback', '/api/'],
+        disallow: ['/auth/callback', '/api/', '/admin/'],
       },
     ],
     sitemap: 'https://www.yogacandy.info/sitemap.xml',
