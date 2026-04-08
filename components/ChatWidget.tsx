@@ -6,14 +6,57 @@ interface Message {
   content: string;
 }
 
+function supportsOnDeviceAI() {
+  return typeof window !== "undefined" && Boolean(window.ai?.languageModel?.create);
+}
+
+async function generateOnDeviceReply(prompt: string) {
+  if (!supportsOnDeviceAI()) {
+    return {
+      reply:
+        "On-device AI is not available in this browser yet. This chat will switch to Gemini Nano when supported, and we will connect a hosted LLM later.",
+      usedAI: false,
+    };
+  }
+
+  try {
+    const session = await window.ai!.languageModel!.create({
+      systemPrompt:
+        "You are YogaCandy's yoga assistant. Reply briefly, clearly, and safely. Focus on yoga, wellness, class selection, and general guidance. Do not claim to be a medical professional. If the user asks for something you cannot do locally, say that on-device AI is limited and offer a short practical alternative.",
+    });
+
+    const reply = await session.prompt(
+      `User message: ${prompt}\n\nRespond in 2-5 sentences. If useful, include one follow-up question.`,
+    );
+    session.destroy();
+
+    return { reply: reply.trim() || "I could not generate a response.", usedAI: true };
+  } catch {
+    return {
+      reply:
+        "I could not use the on-device model right now. Gemini Nano is only available in supported Chrome builds, so I can keep answers simple until a hosted LLM is connected.",
+      usedAI: false,
+    };
+  }
+}
+
 export default function ChatWidget() {
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<Message[]>([
-    { role: "assistant", content: "Hi! I'm AJ. How can I help with your yoga journey today?" },
+    {
+      role: "assistant",
+      content:
+        "Hi! I'm AJ. I can answer with on-device AI when Gemini Nano is available. If not, I’ll tell you and keep things simple for now.",
+    },
   ]);
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [aiAvailable, setAiAvailable] = useState<boolean | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setAiAvailable(supportsOnDeviceAI());
+  }, []);
 
   useEffect(() => {
     if (isOpen) {
@@ -30,22 +73,9 @@ export default function ChatWidget() {
     setInput("");
     setIsLoading(true);
 
-    try {
-      const res = await fetch("http://yogacandy.info:5000/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt: userMessage }),
-      });
-      const data = await res.json();
-      setMessages((prev) => [...prev, { role: "assistant", content: data.message }]);
-    } catch {
-      setMessages((prev) => [
-        ...prev,
-        { role: "assistant", content: "Error connecting to AI Engine. Please try again later." },
-      ]);
-    } finally {
-      setIsLoading(false);
-    }
+    const { reply } = await generateOnDeviceReply(userMessage);
+    setMessages((prev) => [...prev, { role: "assistant", content: reply }]);
+    setIsLoading(false);
   };
 
   return (
@@ -62,7 +92,9 @@ export default function ChatWidget() {
                 <h3 className="font-bold text-sm">YogaCandy Assistant</h3>
                 <div className="flex items-center gap-1">
                   <span className="w-1.5 h-1.5 bg-green-400 rounded-full"></span>
-                  <p className="text-[10px] text-gray-400">Online &amp; Ready</p>
+                  <p className="text-[10px] text-gray-400">
+                    {aiAvailable ? "On-device AI ready" : "Gemini Nano unavailable"}
+                  </p>
                 </div>
               </div>
             </div>

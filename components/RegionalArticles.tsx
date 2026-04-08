@@ -2,6 +2,7 @@
 
 import { useLocation } from '@/app/context/LocationContext';
 import { allArticles, getArticlesForCountry } from '@/app/data/articles';
+import Link from 'next/link';
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
@@ -36,18 +37,18 @@ export default function RegionalArticles() {
                 : 'Guides, research, and inspiration for every practitioner.'}
             </p>
           </div>
-          <a href="#" className="text-blue-600 font-bold text-sm hover:underline underline-offset-4 flex-shrink-0">
+          <Link href="/articles" className="text-blue-600 font-bold text-sm hover:underline underline-offset-4 flex-shrink-0">
             All Articles →
-          </a>
+          </Link>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {articles.map((article) => {
             const isLocal = location?.countryCode && article.regions.includes(location.countryCode) && !article.regions.includes('global');
             return (
-              <a
+              <Link
                 key={article.id}
-                href={article.externalUrl ?? article.styleSlug ? `/styles/${article.styleSlug}` : '#'}
+                href={article.externalUrl ?? `/articles/${article.id}`}
                 className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-md hover:border-gray-200 transition-all group flex flex-col"
               >
                 <div className="flex items-center gap-2 mb-3 flex-wrap">
@@ -70,7 +71,7 @@ export default function RegionalArticles() {
                   <span className="text-xs text-gray-400">{formatDate(article.publishedAt)}</span>
                   <span className="text-xs text-gray-400">{article.readMin} min read</span>
                 </div>
-              </a>
+              </Link>
             );
           })}
         </div>

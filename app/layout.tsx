@@ -92,7 +92,7 @@ export default function RootLayout({
                     </Link>
                   </li>
                   <li>
-                    <Link href="/community" className="hover:text-black">
+                    <Link href="/events" className="hover:text-black">
                       Events
                     </Link>
                   </li>

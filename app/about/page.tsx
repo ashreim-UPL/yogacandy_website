@@ -5,14 +5,14 @@ export const metadata: Metadata = {
   title: "About YogaCandy — Our Mission & Story",
   description:
     "YogaCandy is an AI-powered yoga discovery platform helping practitioners worldwide find their perfect style, connect with studios, and grow their practice.",
-  alternates: { canonical: "https://yogacandy.info/about" },
+  alternates: { canonical: "https://www.yogacandy.info/about" },
 };
 
 const team = [
   {
-    name: "YogaCandy Team",
-    role: "Founders & Yoga Practitioners",
-    bio: "We are a team of yoga practitioners, teachers, and technologists based in the UAE with a shared passion for making yoga accessible to everyone — regardless of experience, location, or background. Between us we have practised Ashtanga, Yin, Kundalini, and Aerial yoga across studios in Dubai, London, New York, and Bali.",
+    name: "YogaCandy Editorial Team",
+    role: "Practitioners, editors, and product builders",
+    bio: "YogaCandy is maintained by a small editorial and product team based in the UAE. We review style pages against lineage sources, studio materials, and practical user needs so the site is useful to new and experienced practitioners alike. The goal is not generic wellness copy; it is specific guidance with clear ownership.",
     avatar: "🧘",
   },
 ];
@@ -36,7 +36,7 @@ const values = [
   {
     icon: "📚",
     title: "Evidence-Informed",
-    body: "Every style profile is researched from primary sources — lineage histories, training organisations, and peer-reviewed wellness literature.",
+    body: "Every style profile is researched from primary sources — lineage histories, training organisations, and peer-reviewed wellness literature. Corrections can be sent to admin@yogacandy.store.",
   },
 ];
 
@@ -76,6 +76,12 @@ export default function AboutPage() {
             <p className="text-gray-600 leading-relaxed">
               We are based in the UAE and particularly focused on growing the yoga community across
               the Middle East and South Asia, while serving practitioners worldwide.
+            </p>
+            <p className="text-gray-600 leading-relaxed mt-4">
+              Editorial questions, corrections, and partnership requests should go to{" "}
+              <a href="mailto:admin@yogacandy.store" className="text-purple-600 hover:underline font-medium">
+                admin@yogacandy.store
+              </a>.
             </p>
           </div>
           <div className="grid grid-cols-2 gap-4">
