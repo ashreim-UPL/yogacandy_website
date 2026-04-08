@@ -57,4 +57,6 @@ export const publicSiteConfig = {
   googleMapsRegion: process.env.NEXT_PUBLIC_GOOGLE_MAPS_REGION?.trim() ?? "US",
   instagramProfileUrl,
   instagramPosts,
+  adsenseId: process.env.NEXT_PUBLIC_ADSENSE_ID?.trim() ?? "",
+  gscVerification: process.env.NEXT_PUBLIC_GSC_VERIFICATION?.trim() ?? "",
 };
