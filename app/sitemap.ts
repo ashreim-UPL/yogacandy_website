@@ -2,7 +2,7 @@ export const dynamic = 'force-static';
 import { allStyles } from '@/app/data/styles';
 import type { MetadataRoute } from 'next';
 
-const BASE_URL = 'https://yogacandy.info';
+const BASE_URL = 'https://www.yogacandy.info';
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const styleEntries = allStyles.map((style) => ({

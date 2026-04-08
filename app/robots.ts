@@ -10,6 +10,6 @@ export default function robots(): MetadataRoute.Robots {
         disallow: ['/auth/callback', '/api/'],
       },
     ],
-    sitemap: 'https://yogacandy.info/sitemap.xml',
+    sitemap: 'https://www.yogacandy.info/sitemap.xml',
   };
 }
