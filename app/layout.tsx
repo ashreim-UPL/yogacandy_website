@@ -16,7 +16,7 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-const BASE_URL = "https://yogacandy.info";
+const BASE_URL = "https://www.yogacandy.info";
 const ADSENSE_CLIENT_ID = process.env.NEXT_PUBLIC_ADSENSE_CLIENT_ID ?? "ca-pub-6414589325394911";
 
 export const metadata: Metadata = {

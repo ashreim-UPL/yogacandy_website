@@ -5,6 +5,8 @@ import StudioList from "@/components/StudioList";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+const BASE_URL = "https://www.yogacandy.info";
+
 export function generateStaticParams() {
   return allStyles.map((style) => ({ slug: style.slug }));
 }
@@ -19,9 +21,9 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     openGraph: {
       title: `${style.name} Yoga - YogaCandy`,
       description: style.tagline,
-      url: `https://yogacandy.info/styles/${slug}`,
+      url: `${BASE_URL}/styles/${slug}`,
     },
-    alternates: { canonical: `https://yogacandy.info/styles/${slug}` },
+    alternates: { canonical: `${BASE_URL}/styles/${slug}` },
   };
 }
 
@@ -63,11 +65,11 @@ function JsonLd({ style }: { style: NonNullable<ReturnType<typeof getStyleBySlug
     "@type": "Article",
     headline: `${style.name} Yoga`,
     description: style.tagline,
-    url: `https://yogacandy.info/styles/${style.slug}`,
+    url: `${BASE_URL}/styles/${style.slug}`,
     publisher: {
       "@type": "Organization",
       name: "YogaCandy",
-      url: "https://yogacandy.info",
+      url: BASE_URL,
     },
   };
   return <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }} />;
