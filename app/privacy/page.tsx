@@ -54,12 +54,32 @@ export default function PrivacyPage() {
           <ul className="text-gray-600 space-y-2 leading-relaxed list-disc list-inside">
             <li><strong>Supabase</strong> — authentication and database (EU region). Data Processing Agreement in place.</li>
             <li><strong>Google Maps</strong> — map embeds when you allow location access. Governed by Google&rsquo;s Privacy Policy.</li>
-            <li><strong>Instagram</strong> — embedded posts from @yogacandyae. Governed by Meta&rsquo;s Privacy Policy.</li>
+            <li><strong>Instagram / Behold</strong> — embedded feed from @yogacandyae. Governed by Meta&rsquo;s Privacy Policy.</li>
           </ul>
         </section>
 
         <section className="mb-10">
-          <h2 className="text-xl font-bold mb-3">6. Your Rights (GDPR Art. 15–22)</h2>
+          <h2 className="text-xl font-bold mb-3">6. Advertising &amp; Cookies (Google AdSense)</h2>
+          <p className="text-gray-600 leading-relaxed mb-3">
+            We use <strong>Google AdSense</strong> to display advertisements on this website. Google AdSense uses cookies
+            and similar tracking technologies to serve ads based on your prior visits to this website and other sites
+            across the web.
+          </p>
+          <ul className="text-gray-600 space-y-2 leading-relaxed list-disc list-inside mb-3">
+            <li><strong>Third-party cookies:</strong> Google and its partners may use cookies to personalise ads, measure ad performance, and prevent ad fraud.</li>
+            <li><strong>Interest-based ads:</strong> Google may use your browsing history across participating websites to show relevant ads. You can opt out via <a href="https://adssettings.google.com" className="text-blue-600 hover:underline" target="_blank" rel="noopener noreferrer">Google Ad Settings</a>.</li>
+            <li><strong>DoubleClick cookie:</strong> Google AdSense also uses the DoubleClick cookie to help deliver better, more relevant ads across the web.</li>
+          </ul>
+          <p className="text-gray-600 leading-relaxed">
+            You can learn more about how Google uses data at{" "}
+            <a href="https://policies.google.com/technologies/partner-sites" className="text-blue-600 hover:underline" target="_blank" rel="noopener noreferrer">
+              policies.google.com/technologies/partner-sites
+            </a>.
+          </p>
+        </section>
+
+        <section className="mb-10">
+          <h2 className="text-xl font-bold mb-3">7. Your Rights (GDPR Art. 15–22)</h2>
           <p className="text-gray-600 leading-relaxed mb-3">You have the right to:</p>
           <ul className="text-gray-600 space-y-1 leading-relaxed list-disc list-inside">
             <li>Access your personal data (Art. 15)</li>
@@ -77,7 +97,7 @@ export default function PrivacyPage() {
         </section>
 
         <section className="mb-10">
-          <h2 className="text-xl font-bold mb-3">7. Data Retention</h2>
+          <h2 className="text-xl font-bold mb-3">8. Data Retention</h2>
           <p className="text-gray-600 leading-relaxed">
             Account data is retained while your account is active and for 12 months after deletion, after
             which it is permanently erased. You may request immediate deletion at any time.
@@ -85,7 +105,7 @@ export default function PrivacyPage() {
         </section>
 
         <section className="mb-10">
-          <h2 className="text-xl font-bold mb-3">8. Contact & Complaints</h2>
+          <h2 className="text-xl font-bold mb-3">9. Contact & Complaints</h2>
           <p className="text-gray-600 leading-relaxed">
             Data Controller: YogaCandy · <a href="mailto:privacy@yogacandy.info" className="text-blue-600 hover:underline">privacy@yogacandy.info</a>
             <br />
