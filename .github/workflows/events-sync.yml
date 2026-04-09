@@ -22,8 +22,8 @@ jobs:
 
       - name: Run event sync
         env:
-          SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+	  SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+	  SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
           EVENTBRITE_TOKEN: ${{ secrets.EVENTBRITE_TOKEN }}
           MEETUP_KEY: ${{ secrets.MEETUP_KEY }}
         run: python scripts/sync_events.py
