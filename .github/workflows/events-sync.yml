@@ -4,11 +4,12 @@ on:
   schedule:
     # Run every day at 06:00 UTC
     - cron: '0 6 * * *'
-  workflow_dispatch:   # Allow manual trigger
+  workflow_dispatch:
 
 jobs:
   sync-events:
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v4
 
@@ -20,16 +21,28 @@ jobs:
       - name: Install dependencies
         run: pip install requests supabase python-dateutil
 
+      - name: Debug secret presence
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          EVENTBRITE_TOKEN: ${{ secrets.EVENTBRITE_TOKEN }}
+          MEETUP_KEY: ${{ secrets.MEETUP_KEY }}
+        run: |
+          if [ -z "$SUPABASE_URL" ]; then echo "SUPABASE_URL missing"; else echo "SUPABASE_URL present"; fi
+          if [ -z "$SUPABASE_SERVICE_KEY" ]; then echo "SUPABASE_SERVICE_KEY missing"; else echo "SUPABASE_SERVICE_KEY present"; fi
+          if [ -z "$EVENTBRITE_TOKEN" ]; then echo "EVENTBRITE_TOKEN missing"; else echo "EVENTBRITE_TOKEN present"; fi
+          if [ -z "$MEETUP_KEY" ]; then echo "MEETUP_KEY missing"; else echo "MEETUP_KEY present"; fi
+
       - name: Run event sync
         env:
-	  SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-	  SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
           EVENTBRITE_TOKEN: ${{ secrets.EVENTBRITE_TOKEN }}
           MEETUP_KEY: ${{ secrets.MEETUP_KEY }}
         run: python scripts/sync_events.py
 
       - name: Approve community submissions
         env:
-          SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
         run: python scripts/approve_events.py
