@@ -7,13 +7,40 @@ interface Message {
   content: string;
 }
 
-type Provider = "chrome-ai" | "gemini" | "openai" | "fallback";
+type Provider = "chrome-ai" | "chrome-ai-downloading" | "gemini" | "openai" | "fallback";
 
-/* ─── Provider helpers ───────────────────────────────────────────────────── */
+/* ─── Chrome Prompt API helpers (self.ai.languageModel) ─────────────────── */
 
-function detectProvider(): Provider {
-  if (typeof window === "undefined") return "fallback";
-  if (window.ai?.languageModel?.create) return "chrome-ai";
+/** Returns the languageModel namespace from self.ai, or null if unavailable. */
+function getChromeLanguageModel() {
+  if (typeof self === "undefined") return null;
+  return (self as any).ai?.languageModel ?? null;
+}
+
+/**
+ * Checks Chrome Prompt API availability.
+ * Returns:
+ *   "readily"        – model is on-device, ready to use
+ *   "after-download" – model exists but needs a download first
+ *   "no"             – on-device AI not available on this device/browser
+ *   null             – API not present at all
+ */
+async function getChromeAIAvailability(): Promise<"readily" | "after-download" | "no" | null> {
+  const lm = getChromeLanguageModel();
+  if (!lm) return null;
+  try {
+    const cap = await lm.capabilities();
+    return cap?.available ?? null;
+  } catch {
+    return null;
+  }
+}
+
+async function detectProvider(): Promise<Provider> {
+  if (typeof self === "undefined") return "fallback";
+  const availability = await getChromeAIAvailability();
+  if (availability === "readily") return "chrome-ai";
+  if (availability === "after-download") return "chrome-ai-downloading";
   if (process.env.NEXT_PUBLIC_GEMINI_API_KEY) return "gemini";
   if (process.env.NEXT_PUBLIC_OPENAI_API_KEY) return "openai";
   return "fallback";
@@ -25,10 +52,20 @@ const SYSTEM_PROMPT =
   "Never give medical advice. If unsure, suggest speaking with a qualified teacher.";
 
 async function askChromeAI(prompt: string): Promise<string> {
-  const session = await window.ai!.languageModel!.create({ systemPrompt: SYSTEM_PROMPT });
-  const reply = await session.prompt(`${prompt}\n\nIf helpful, end with one follow-up question.`);
-  session.destroy();
-  return reply.trim() || "I couldn't generate a reply.";
+  const lm = getChromeLanguageModel();
+  if (!lm) throw new Error("Chrome Prompt API unavailable");
+
+  let session: any = null;
+  try {
+    session = await lm.create({ systemPrompt: SYSTEM_PROMPT });
+    const reply = await session.prompt(
+      `${prompt}\n\nIf helpful, end with one follow-up question.`
+    );
+    return reply.trim() || "I couldn't generate a reply.";
+  } finally {
+    // Always release VRAM/RAM — even if prompt throws
+    session?.destroy();
+  }
 }
 
 async function askGemini(messages: Message[]): Promise<string> {
@@ -84,6 +121,14 @@ async function getReply(
 ): Promise<{ reply: string; usedProvider: Provider }> {
   const allMessages: Message[] = [...history, { role: "user", content: userMessage }];
 
+  if (provider === "chrome-ai-downloading") {
+    return {
+      reply:
+        "The on-device AI model is still downloading. Please try again in a few moments, or wait for it to finish preparing.",
+      usedProvider: "chrome-ai-downloading",
+    };
+  }
+
   try {
     if (provider === "chrome-ai") {
       return { reply: await askChromeAI(userMessage), usedProvider: "chrome-ai" };
@@ -96,6 +141,23 @@ async function getReply(
     }
   } catch (err) {
     console.warn(`[ChatWidget] Provider "${provider}" failed:`, err);
+    // On Chrome AI VRAM/RAM failure, try cloud fallback transparently
+    if (provider === "chrome-ai") {
+      if (process.env.NEXT_PUBLIC_GEMINI_API_KEY) {
+        try {
+          return { reply: await askGemini(allMessages), usedProvider: "gemini" };
+        } catch (fallbackErr) {
+          console.warn("[ChatWidget] Gemini fallback also failed:", fallbackErr);
+        }
+      }
+      if (process.env.NEXT_PUBLIC_OPENAI_API_KEY) {
+        try {
+          return { reply: await askOpenAI(allMessages), usedProvider: "openai" };
+        } catch (fallbackErr) {
+          console.warn("[ChatWidget] OpenAI fallback also failed:", fallbackErr);
+        }
+      }
+    }
   }
 
   return {
@@ -108,6 +170,7 @@ async function getReply(
 /* ─── Provider labels ────────────────────────────────────────────────────── */
 const PROVIDER_LABELS: Record<Provider, string> = {
   "chrome-ai": "On-device AI · Gemini Nano",
+  "chrome-ai-downloading": "Gemini Nano · Downloading…",
   gemini: "Gemini AI",
   openai: "ChatGPT · GPT-4o mini",
   fallback: "AI not configured",
@@ -154,7 +217,7 @@ export default function ChatWidget() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    setProvider(detectProvider());
+    detectProvider().then(setProvider);
   }, []);
 
   useEffect(() => {
@@ -184,6 +247,7 @@ export default function ChatWidget() {
 
   const providerDotColor: Record<Provider, string> = {
     "chrome-ai": "bg-green-400",
+    "chrome-ai-downloading": "bg-amber-400 animate-pulse",
     gemini: "bg-blue-400",
     openai: "bg-emerald-400",
     fallback: "bg-yellow-400",

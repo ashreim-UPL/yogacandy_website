@@ -124,13 +124,18 @@ function getTopStyles(answers: Record<string, string>, count = 3): YogaStyle[] {
     .map((x) => x.style);
 }
 
-// ── Chrome AI ─────────────────────────────────────────────────────────────────
+// ── Chrome Prompt API (self.ai.languageModel) ──────────────────────────────
 async function getAIRecommendation(answers: Record<string, string>): Promise<string[] | null> {
+  const lm = (self as any).ai?.languageModel;
+  if (!lm) return null;
+
+  let session: any = null;
   try {
-    const cap = await window.ai?.languageModel?.capabilities?.();
+    // Check availability before attempting to allocate a session
+    const cap = await lm.capabilities();
     if (!cap || cap.available === 'no') return null;
 
-    const session = await window.ai!.languageModel!.create({
+    session = await lm.create({
       systemPrompt: `You are a knowledgeable yoga advisor. You must respond ONLY with a JSON array of exactly 3 yoga style slugs chosen from this list: ${allStyles.map((s) => s.slug).join(', ')}. No other text.`,
     });
 
@@ -138,14 +143,18 @@ async function getAIRecommendation(answers: Record<string, string>): Promise<str
       .map(([k, v]) => `${k}: ${v}`)
       .join(', ');
 
-    const raw = await session.prompt(`User preferences — ${prefs}. Return the 3 best-matching yoga style slugs as a JSON array.`);
-    session.destroy();
+    const raw = await session.prompt(
+      `User preferences — ${prefs}. Return the 3 best-matching yoga style slugs as a JSON array.`
+    );
 
     const parsed = JSON.parse(raw.trim());
     if (Array.isArray(parsed) && parsed.every((s) => typeof s === 'string')) return parsed;
     return null;
   } catch {
     return null;
+  } finally {
+    // Always release VRAM/RAM — even if prompt or parse throws
+    session?.destroy();
   }
 }
 
@@ -204,7 +213,7 @@ export default function StyleRecommender() {
         <h2 className="text-2xl font-bold mb-2">Find Your Perfect Style</h2>
         <p className="text-blue-100 mb-6 max-w-sm mx-auto text-sm leading-relaxed">
           Answer 5 quick questions and our{' '}
-          {typeof window !== 'undefined' && window.ai?.languageModel
+          {typeof self !== 'undefined' && (self as any).ai?.languageModel
             ? 'on-device AI'
             : 'smart engine'}{' '}
           will match you with the ideal yoga style.
