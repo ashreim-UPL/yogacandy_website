@@ -1,0 +1,16 @@
+#!/bin/sh
+# Prevent direct pushes to main. All changes must go through a PR.
+while read local_ref local_sha remote_ref remote_sha; do
+  if [ "$remote_ref" = "refs/heads/main" ]; then
+    echo ""
+    echo "  Direct push to 'main' is blocked."
+    echo "  Create a feature branch and open a PR instead:"
+    echo ""
+    echo "    git checkout -b claude/<feature>"
+    echo "    git push origin claude/<feature>"
+    echo "    # then open a PR on GitHub"
+    echo ""
+    exit 1
+  fi
+done
+exit 0
