@@ -188,10 +188,6 @@ function SignupForm() {
             ))}
           </div>
 
-          <p className="text-xs text-gray-500 mb-4 leading-relaxed">
-            Google sign-in requires the provider to be enabled in Supabase. If it is not, the button will still show the exact setup problem instead of failing silently.
-          </p>
-
           <div className="relative flex items-center gap-3 mb-6">
             <div className="flex-grow h-px bg-gray-200" />
             <span className="text-xs text-gray-400 font-medium">or</span>
