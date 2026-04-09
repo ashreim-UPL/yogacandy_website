@@ -1,5 +1,9 @@
 "use client";
 import { useState, useRef, useEffect } from "react";
+import {
+  canUseBuiltInLanguageModel,
+  createBuiltInLanguageModelSession,
+} from "@/lib/browserLanguageModel";
 
 /* ─── Types ─────────────────────────────────────────────────────────────── */
 interface Message {
@@ -7,44 +11,7 @@ interface Message {
   content: string;
 }
 
-type Provider = "chrome-ai" | "chrome-ai-downloading" | "gemini" | "openai" | "fallback";
-
-/* ─── Chrome Prompt API helpers (self.ai.languageModel) ─────────────────── */
-
-/** Returns the languageModel namespace from self.ai, or null if unavailable. */
-function getChromeLanguageModel() {
-  if (typeof self === "undefined") return null;
-  return (self as any).ai?.languageModel ?? null;
-}
-
-/**
- * Checks Chrome Prompt API availability.
- * Returns:
- *   "readily"        – model is on-device, ready to use
- *   "after-download" – model exists but needs a download first
- *   "no"             – on-device AI not available on this device/browser
- *   null             – API not present at all
- */
-async function getChromeAIAvailability(): Promise<"readily" | "after-download" | "no" | null> {
-  const lm = getChromeLanguageModel();
-  if (!lm) return null;
-  try {
-    const cap = await lm.capabilities();
-    return cap?.available ?? null;
-  } catch {
-    return null;
-  }
-}
-
-async function detectProvider(): Promise<Provider> {
-  if (typeof self === "undefined") return "fallback";
-  const availability = await getChromeAIAvailability();
-  if (availability === "readily") return "chrome-ai";
-  if (availability === "after-download") return "chrome-ai-downloading";
-  if (process.env.NEXT_PUBLIC_GEMINI_API_KEY) return "gemini";
-  if (process.env.NEXT_PUBLIC_OPENAI_API_KEY) return "openai";
-  return "fallback";
-}
+type Provider = "chrome-ai" | "gemini" | "openai" | "fallback";
 
 const SYSTEM_PROMPT =
   "You are the YogaCandy AI assistant. Answer briefly (2–5 sentences), clearly, and safely. " +
@@ -52,19 +19,15 @@ const SYSTEM_PROMPT =
   "Never give medical advice. If unsure, suggest speaking with a qualified teacher.";
 
 async function askChromeAI(prompt: string): Promise<string> {
-  const lm = getChromeLanguageModel();
-  if (!lm) throw new Error("Chrome Prompt API unavailable");
+  const session = await createBuiltInLanguageModelSession({
+    systemPrompt: SYSTEM_PROMPT,
+  });
 
-  let session: any = null;
   try {
-    session = await lm.create({ systemPrompt: SYSTEM_PROMPT });
-    const reply = await session.prompt(
-      `${prompt}\n\nIf helpful, end with one follow-up question.`
-    );
+    const reply = await session.prompt(`${prompt}\n\nIf helpful, end with one follow-up question.`);
     return reply.trim() || "I couldn't generate a reply.";
   } finally {
-    // Always release VRAM/RAM — even if prompt throws
-    session?.destroy();
+    session.destroy();
   }
 }
 
@@ -73,8 +36,6 @@ async function askGemini(messages: Message[]): Promise<string> {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${key}`;
 
   const contents = [
-    { role: "user", parts: [{ text: SYSTEM_PROMPT + "\n\nYou are ready to help." }] },
-    { role: "model", parts: [{ text: "Understood! How can I help you today?" }] },
     ...messages.map((m) => ({
       role: m.role === "user" ? "user" : "model",
       parts: [{ text: m.content }],
@@ -84,7 +45,16 @@ async function askGemini(messages: Message[]): Promise<string> {
   const res = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ contents }),
+    body: JSON.stringify({
+      systemInstruction: {
+        parts: [{ text: SYSTEM_PROMPT }],
+      },
+      contents,
+      generationConfig: {
+        temperature: 0.7,
+        maxOutputTokens: 300,
+      },
+    }),
   });
   if (!res.ok) throw new Error(`Gemini error ${res.status}`);
   const data = await res.json();
@@ -121,15 +91,19 @@ async function getReply(
 ): Promise<{ reply: string; usedProvider: Provider }> {
   const allMessages: Message[] = [...history, { role: "user", content: userMessage }];
 
-  if (provider === "chrome-ai-downloading") {
-    return {
-      reply:
-        "The on-device AI model is still downloading. Please try again in a few moments, or wait for it to finish preparing.",
-      usedProvider: "chrome-ai-downloading",
-    };
-  }
-
   try {
+    if (provider === "fallback") {
+      if (await canUseBuiltInLanguageModel()) {
+        return { reply: await askChromeAI(userMessage), usedProvider: "chrome-ai" };
+      }
+      if (process.env.NEXT_PUBLIC_GEMINI_API_KEY) {
+        return { reply: await askGemini(allMessages), usedProvider: "gemini" };
+      }
+      if (process.env.NEXT_PUBLIC_OPENAI_API_KEY) {
+        return { reply: await askOpenAI(allMessages), usedProvider: "openai" };
+      }
+    }
+
     if (provider === "chrome-ai") {
       return { reply: await askChromeAI(userMessage), usedProvider: "chrome-ai" };
     }
@@ -141,7 +115,6 @@ async function getReply(
     }
   } catch (err) {
     console.warn(`[ChatWidget] Provider "${provider}" failed:`, err);
-    // On Chrome AI VRAM/RAM failure, try cloud fallback transparently
     if (provider === "chrome-ai") {
       if (process.env.NEXT_PUBLIC_GEMINI_API_KEY) {
         try {
@@ -170,7 +143,6 @@ async function getReply(
 /* ─── Provider labels ────────────────────────────────────────────────────── */
 const PROVIDER_LABELS: Record<Provider, string> = {
   "chrome-ai": "On-device AI · Gemini Nano",
-  "chrome-ai-downloading": "Gemini Nano · Downloading…",
   gemini: "Gemini AI",
   openai: "ChatGPT · GPT-4o mini",
   fallback: "AI not configured",
@@ -217,7 +189,30 @@ export default function ChatWidget() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    detectProvider().then(setProvider);
+    let cancelled = false;
+
+    void (async () => {
+      if (await canUseBuiltInLanguageModel()) {
+        if (!cancelled) setProvider("chrome-ai");
+        return;
+      }
+
+      if (process.env.NEXT_PUBLIC_GEMINI_API_KEY) {
+        if (!cancelled) setProvider("gemini");
+        return;
+      }
+
+      if (process.env.NEXT_PUBLIC_OPENAI_API_KEY) {
+        if (!cancelled) setProvider("openai");
+        return;
+      }
+
+      if (!cancelled) setProvider("fallback");
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
@@ -238,7 +233,6 @@ export default function ChatWidget() {
 
     const { reply, usedProvider } = await getReply(userMessage, messages, provider);
 
-    // Update provider if it changed (e.g. fallback kicked in)
     if (usedProvider !== provider) setProvider(usedProvider);
 
     setMessages((prev) => [...prev, { role: "assistant", content: reply }]);
@@ -247,7 +241,6 @@ export default function ChatWidget() {
 
   const providerDotColor: Record<Provider, string> = {
     "chrome-ai": "bg-green-400",
-    "chrome-ai-downloading": "bg-amber-400 animate-pulse",
     gemini: "bg-blue-400",
     openai: "bg-emerald-400",
     fallback: "bg-yellow-400",
@@ -257,7 +250,6 @@ export default function ChatWidget() {
     <div id="ai-assistant" className="fixed bottom-6 right-6 z-[100]">
       {isOpen ? (
         <div className="bg-white border rounded-2xl shadow-2xl w-80 sm:w-96 overflow-hidden flex flex-col">
-          {/* ── Header ── */}
           <div className="bg-black p-4 flex justify-between items-center text-white">
             <div className="flex items-center gap-3">
               <YCAvatar size={36} />
@@ -284,7 +276,6 @@ export default function ChatWidget() {
             </button>
           </div>
 
-          {/* ── Messages ── */}
           <div className="p-4 h-72 overflow-y-auto bg-gray-50 flex flex-col gap-3">
             {messages.map((msg, i) => (
               <div
@@ -314,7 +305,6 @@ export default function ChatWidget() {
             <div ref={messagesEndRef} />
           </div>
 
-          {/* ── Input ── */}
           <form onSubmit={handleChat} className="p-4 border-t flex gap-2 bg-white">
             <input
               className="flex-grow border rounded-full px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black transition-all"
@@ -341,7 +331,6 @@ export default function ChatWidget() {
           </form>
         </div>
       ) : (
-        /* ── Floating button ── */
         <button
           onClick={() => setIsOpen(true)}
           className="bg-black text-white p-4 rounded-full shadow-xl hover:scale-110 transition-all group flex items-center gap-2"

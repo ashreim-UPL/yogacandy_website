@@ -105,19 +105,20 @@ This works automatically in **Chrome 127+** on desktop when the user has enabled
 
 This is the most privacy-friendly option. The chat widget always tries Chrome AI first.
 
+The current Chrome built-in AI API uses `LanguageModel.availability()` and `LanguageModel.create()`. Older `window.ai.languageModel` snippets you may find online are stale and will fail in this app.
+
 ---
 
 ## Using both Gemini and OpenAI together
 
 You can set **both** keys. The widget will:
 1. Try Chrome AI (Gemini Nano) first
-2. If not available, use Gemini API (because it is checked before OpenAI in `detectProvider()`)
+2. If not available, use Gemini API
 3. If Gemini fails, fall back to OpenAI
 
-To prefer OpenAI over Gemini, swap the order in `components/ChatWidget.tsx`:
+To prefer OpenAI over Gemini, swap the order in the provider selection logic in `components/ChatWidget.tsx`:
 
 ```ts
-// In detectProvider(), change:
 if (process.env.NEXT_PUBLIC_GEMINI_API_KEY) return "gemini";
 if (process.env.NEXT_PUBLIC_OPENAI_API_KEY) return "openai";
 

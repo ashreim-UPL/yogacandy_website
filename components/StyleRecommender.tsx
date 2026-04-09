@@ -1,22 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { allStyles, type YogaStyle } from '@/app/data/styles';
-
-// ── Chrome AI Prompt API (experimental, Chrome 127+) ──────────────────────────
-declare global {
-  interface Window {
-    ai?: {
-      languageModel?: {
-        create(opts?: { systemPrompt?: string }): Promise<{
-          prompt(text: string): Promise<string>;
-          destroy(): void;
-        }>;
-        capabilities?(): Promise<{ available: string }>;
-      };
-    };
-  }
-}
+import {
+  createBuiltInLanguageModelSession,
+  getBuiltInLanguageModelAvailability,
+} from '@/lib/browserLanguageModel';
 
 // ── Questionnaire ─────────────────────────────────────────────────────────────
 interface Question {
@@ -85,28 +74,23 @@ function scoreStyleRuleBased(style: YogaStyle, answers: Record<string, string>):
   let score = 0;
   const s = style.scores;
 
-  // goal
   if (answers.goal === 'flexibility') score += s.flexibility * 2;
   if (answers.goal === 'strength') score += s.strength * 2;
   if (answers.goal === 'stress' || answers.goal === 'spiritual') score += s.mind * 2 + s.breath;
   if (answers.goal === 'weight') score += s.strength + s.flexibility;
 
-  // activity level — penalise advanced styles for sedentary users
   if (answers.activity === 'sedentary' && style.level.includes('Advanced')) score -= 6;
   if (answers.activity === 'very_active' && style.level === 'Beginner') score -= 3;
 
-  // health
   if (answers.health === 'back' || answers.health === 'recovery') {
     if (['iyengar', 'viniyoga', 'restorative', 'yin-yoga'].includes(style.slug)) score += 8;
     if (['ashtanga', 'power-yoga'].includes(style.slug)) score -= 6;
   }
   if (answers.health === 'anxiety') score += s.mind + s.breath;
 
-  // time commitment
-  if (answers.time === 'short' && style.slug === 'bikram-hot-yoga') score -= 4; // 90-min fixed
+  if (answers.time === 'short' && style.slug === 'bikram-hot-yoga') score -= 4;
   if (answers.time === 'long') score += s.strength;
 
-  // vibe
   if (answers.vibe === 'dynamic') score += s.strength + s.flexibility;
   if (answers.vibe === 'calm') score += s.mind + s.breath;
   if (answers.vibe === 'technical' && style.slug === 'iyengar') score += 6;
@@ -124,51 +108,59 @@ function getTopStyles(answers: Record<string, string>, count = 3): YogaStyle[] {
     .map((x) => x.style);
 }
 
-// ── Chrome Prompt API (self.ai.languageModel) ──────────────────────────────
+// ── Chrome AI ─────────────────────────────────────────────────────────────────
 async function getAIRecommendation(answers: Record<string, string>): Promise<string[] | null> {
-  const lm = (self as any).ai?.languageModel;
-  if (!lm) return null;
-
-  let session: any = null;
   try {
-    // Check availability before attempting to allocate a session
-    const cap = await lm.capabilities();
-    if (!cap || cap.available === 'no') return null;
+    const availability = await getBuiltInLanguageModelAvailability();
+    if (availability === 'unavailable') return null;
 
-    session = await lm.create({
+    const session = await createBuiltInLanguageModelSession({
       systemPrompt: `You are a knowledgeable yoga advisor. You must respond ONLY with a JSON array of exactly 3 yoga style slugs chosen from this list: ${allStyles.map((s) => s.slug).join(', ')}. No other text.`,
     });
 
-    const prefs = Object.entries(answers)
-      .map(([k, v]) => `${k}: ${v}`)
-      .join(', ');
+    try {
+      const prefs = Object.entries(answers)
+        .map(([k, v]) => `${k}: ${v}`)
+        .join(', ');
 
-    const raw = await session.prompt(
-      `User preferences — ${prefs}. Return the 3 best-matching yoga style slugs as a JSON array.`
-    );
+      const raw = await session.prompt(`User preferences — ${prefs}. Return the 3 best-matching yoga style slugs as a JSON array.`);
 
-    const parsed = JSON.parse(raw.trim());
-    if (Array.isArray(parsed) && parsed.every((s) => typeof s === 'string')) return parsed;
-    return null;
+      const parsed = JSON.parse(raw.trim());
+      if (Array.isArray(parsed) && parsed.every((s) => typeof s === 'string')) return parsed;
+      return null;
+    } finally {
+      session.destroy();
+    }
   } catch {
     return null;
-  } finally {
-    // Always release VRAM/RAM — even if prompt or parse throws
-    session?.destroy();
   }
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
 export default function StyleRecommender() {
-  const [step, setStep] = useState(0); // 0 = intro, 1..N = questions, N+1 = result
+  const [step, setStep] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [results, setResults] = useState<YogaStyle[]>([]);
   const [loading, setLoading] = useState(false);
   const [usedAI, setUsedAI] = useState(false);
+  const [hasOnDeviceAI, setHasOnDeviceAI] = useState(false);
 
   const totalSteps = QUESTIONS.length;
   const currentQ = QUESTIONS[step - 1];
   const isDone = step > totalSteps;
+
+  useEffect(() => {
+    let cancelled = false;
+
+    void (async () => {
+      const availability = await getBuiltInLanguageModelAvailability();
+      if (!cancelled) setHasOnDeviceAI(availability !== 'unavailable');
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   async function handleAnswer(value: string) {
     const newAnswers = { ...answers, [currentQ.id]: value };
@@ -176,7 +168,6 @@ export default function StyleRecommender() {
 
     if (step === totalSteps) {
       setLoading(true);
-      // Try on-device AI first
       const aiSlugs = await getAIRecommendation(newAnswers);
       if (aiSlugs) {
         const aiStyles = aiSlugs
@@ -190,7 +181,6 @@ export default function StyleRecommender() {
           return;
         }
       }
-      // Fallback: rule-based
       setResults(getTopStyles(newAnswers));
       setLoading(false);
     }
@@ -205,7 +195,6 @@ export default function StyleRecommender() {
     setLoading(false);
   }
 
-  // ── Intro ──
   if (step === 0) {
     return (
       <div className="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-3xl p-8 text-white text-center">
@@ -213,9 +202,7 @@ export default function StyleRecommender() {
         <h2 className="text-2xl font-bold mb-2">Find Your Perfect Style</h2>
         <p className="text-blue-100 mb-6 max-w-sm mx-auto text-sm leading-relaxed">
           Answer 5 quick questions and our{' '}
-          {typeof self !== 'undefined' && (self as any).ai?.languageModel
-            ? 'on-device AI'
-            : 'smart engine'}{' '}
+          {hasOnDeviceAI ? 'on-device AI' : 'smart engine'}{' '}
           will match you with the ideal yoga style.
         </p>
         <button
@@ -228,7 +215,6 @@ export default function StyleRecommender() {
     );
   }
 
-  // ── Loading ──
   if (loading) {
     return (
       <div className="bg-white rounded-3xl p-8 text-center border border-gray-100 shadow-sm">
@@ -246,7 +232,6 @@ export default function StyleRecommender() {
     );
   }
 
-  // ── Results ──
   if (isDone && results.length > 0) {
     return (
       <div className="bg-white rounded-3xl p-8 border border-gray-100 shadow-sm">
@@ -292,11 +277,9 @@ export default function StyleRecommender() {
     );
   }
 
-  // ── Question ──
   const progress = ((step - 1) / totalSteps) * 100;
   return (
     <div className="bg-white rounded-3xl p-8 border border-gray-100 shadow-sm">
-      {/* Progress bar */}
       <div className="h-1 bg-gray-100 rounded-full mb-6 overflow-hidden">
         <div
           className="h-full bg-blue-500 rounded-full transition-all duration-500"
