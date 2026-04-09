@@ -11,9 +11,15 @@ type Provider = "chrome-ai" | "gemini" | "openai" | "fallback";
 
 /* ─── Provider helpers ───────────────────────────────────────────────────── */
 
+// Chrome on-device AI — handle both old (languageModel) and new (assistant) namespaces
+function getChromeAI() {
+  if (typeof window === "undefined") return null;
+  return (window.ai as any)?.languageModel ?? (window.ai as any)?.assistant ?? null;
+}
+
 function detectProvider(): Provider {
   if (typeof window === "undefined") return "fallback";
-  if (window.ai?.languageModel?.create) return "chrome-ai";
+  if (getChromeAI()?.create) return "chrome-ai";
   if (process.env.NEXT_PUBLIC_GEMINI_API_KEY) return "gemini";
   if (process.env.NEXT_PUBLIC_OPENAI_API_KEY) return "openai";
   return "fallback";
@@ -25,7 +31,8 @@ const SYSTEM_PROMPT =
   "Never give medical advice. If unsure, suggest speaking with a qualified teacher.";
 
 async function askChromeAI(prompt: string): Promise<string> {
-  const session = await window.ai!.languageModel!.create({ systemPrompt: SYSTEM_PROMPT });
+  const ai = getChromeAI();
+  const session = await ai!.create({ systemPrompt: SYSTEM_PROMPT });
   const reply = await session.prompt(`${prompt}\n\nIf helpful, end with one follow-up question.`);
   session.destroy();
   return reply.trim() || "I couldn't generate a reply.";
