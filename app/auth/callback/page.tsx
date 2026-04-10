@@ -17,7 +17,7 @@ export default function AuthCallbackPage() {
       }
 
       if (!mounted) return;
-      const next = new URLSearchParams(window.location.search).get('next') ?? '/';
+      const next = new URLSearchParams(window.location.search).get('next') ?? '/dashboard';
       window.location.href = next;
     });
 

@@ -5,13 +5,6 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import type { User } from "@supabase/supabase-js";
 
-const navLinks = [
-  { href: "/", label: "Home" },
-  { href: "/styles", label: "Yoga Styles" },
-  { href: "/events", label: "Events" },
-  { href: "/community", label: "Community" },
-];
-
 export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [user, setUser] = useState<User | null>(null);
@@ -42,11 +35,25 @@ export default function Header() {
     ?? user?.email?.[0]?.toUpperCase()
     ?? "?";
 
+  const navLinks = user
+    ? [
+        { href: "/dashboard", label: "Dashboard" },
+        { href: "/styles", label: "Yoga Styles" },
+        { href: "/events", label: "Events" },
+        { href: "/community", label: "Community" },
+      ]
+    : [
+        { href: "/", label: "Home" },
+        { href: "/styles", label: "Yoga Styles" },
+        { href: "/events", label: "Events" },
+        { href: "/community", label: "Community" },
+      ];
+
   return (
     <header className="border-b bg-white/90 backdrop-blur-sm sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
         {/* Logo */}
-        <Link href="/" className="flex items-center group">
+        <Link href={user ? "/dashboard" : "/"} className="flex items-center group">
           <img src="/yogacandy-banner.svg" alt="YogaCandy" className="h-10 group-hover:scale-105 transition-transform" />
         </Link>
 
@@ -92,6 +99,9 @@ export default function Header() {
                   </div>
                   <Link href="/profile" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-2 px-4 py-2 text-sm hover:bg-gray-50 transition-colors">
                     <span>👤</span> My Profile
+                  </Link>
+                  <Link href="/dashboard" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-2 px-4 py-2 text-sm hover:bg-gray-50 transition-colors">
+                    <span>🏠</span> Dashboard
                   </Link>
                   <Link href="/events" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-2 px-4 py-2 text-sm hover:bg-gray-50 transition-colors">
                     <span>📅</span> My Events
@@ -165,6 +175,9 @@ export default function Header() {
                   <div className="px-2 py-2 text-sm text-gray-500">
                     Signed in as <span className="font-medium text-black">{user.user_metadata?.full_name ?? user.email}</span>
                   </div>
+                  <Link href="/dashboard" onClick={() => setMobileMenuOpen(false)} className="py-2 px-2 text-sm hover:text-blue-600">
+                    🏠 Dashboard
+                  </Link>
                   <Link href="/profile" onClick={() => setMobileMenuOpen(false)} className="py-2 px-2 text-sm hover:text-blue-600">
                     👤 My Profile
                   </Link>
