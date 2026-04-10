@@ -54,7 +54,7 @@ function SignupForm() {
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
-      if (data.session) window.location.href = '/';
+      if (data.session) window.location.href = '/dashboard';
     });
 
     if (!supabaseUrl) return;
@@ -72,7 +72,7 @@ function SignupForm() {
       .catch(() => {
         setOauthAvailability(null);
       });
-  }, []);
+  }, [supabaseUrl]);
 
   async function handleSSO(provider: 'google' | 'apple' | 'facebook') {
     const providerEnabled = oauthAvailability?.[provider];
@@ -88,7 +88,7 @@ function SignupForm() {
     const { error: authError } = await supabase.auth.signInWithOAuth({
       provider,
       options: {
-        redirectTo: `${window.location.origin}/auth/callback?role=${isTeacher ? 'teacher' : 'student'}`,
+        redirectTo: `${window.location.origin}/auth/callback?role=${isTeacher ? 'teacher' : 'student'}&next=/dashboard`,
       },
     });
     if (authError) {
@@ -123,7 +123,7 @@ function SignupForm() {
             gdpr_consent: true,
             gdpr_consent_at: new Date().toISOString(),
           },
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
+          emailRedirectTo: `${window.location.origin}/auth/callback?next=/dashboard`,
         },
       });
       if (authError) {
@@ -136,7 +136,7 @@ function SignupForm() {
       if (authError) {
         setError(authError.message);
       } else {
-        window.location.href = '/';
+        window.location.href = '/dashboard';
       }
     }
     setLoading(false);

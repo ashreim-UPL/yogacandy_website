@@ -208,7 +208,7 @@ export default function ProfilePage() {
         setError(authError.message);
       } else {
         setSuccess(true);
-        if (complete) setTimeout(() => router.push('/'), 1200);
+        if (complete) setTimeout(() => router.push('/dashboard'), 1200);
       }
     }
     setSaving(false);
