@@ -129,14 +129,17 @@ export const allArticles: Article[] = [
   // ── India ────────────────────────────────────────────────────────────────────
   {
     id: 'mysore-pilgrim',
-    title: 'A Practitioner\'s Guide to Mysore, India',
+    title: 'Mysore, India: A Practical Guide for Ashtanga Pilgrims',
     excerpt:
-      'Visiting the birthplace of modern yoga — the KPJAYI institute, surrounding ashrams, and tips for making the most of a yoga pilgrimage.',
+      'A focused guide to the Ashtanga heartland: where to stay, what to expect in class, and how to plan a meaningful, respectful practice trip.',
     category: 'Travel',
     readMin: 9,
     publishedAt: '2025-07-04',
     regions: ['IN'],
     styleSlug: 'ashtanga',
+    sourceType: 'editorial',
+    reviewStatus: 'verified',
+    author: 'YogaCandy Editorial',
   },
 
   // ── Australia ────────────────────────────────────────────────────────────────
