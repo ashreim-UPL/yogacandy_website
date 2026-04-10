@@ -33,7 +33,8 @@ async function askChromeAI(prompt: string): Promise<string> {
 
 async function askGemini(messages: Message[]): Promise<string> {
   const key = process.env.NEXT_PUBLIC_GEMINI_API_KEY!;
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${key}`;
+  // Use v1 unless you specifically need v1beta-only experimental features.
+  const url = `https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent?key=${key}`;
 
   const contents = [
     ...messages.map((m) => ({
