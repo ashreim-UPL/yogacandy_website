@@ -9,6 +9,7 @@ import {
 } from "@/lib/browserLanguageModel";
 import {
   AI_PROVIDER_OPTIONS,
+  AI_CLOUD_MODEL_OPTIONS,
   buildAIContextSummary,
   buildGroundedChatPrompt,
   defaultAIUserSettings,
@@ -55,10 +56,10 @@ async function askChromeAI(prompt: string, systemPrompt: string): Promise<string
   }
 }
 
-async function askGemini(messages: Message[], systemPrompt: string): Promise<string> {
+async function askGemini(messages: Message[], systemPrompt: string, modelId: string): Promise<string> {
   const key = process.env.NEXT_PUBLIC_GEMINI_API_KEY!;
   // Use v1 unless you specifically need v1beta-only experimental features.
-  const url = `https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent?key=${key}`;
+  const url = `https://generativelanguage.googleapis.com/v1/models/${modelId}:generateContent?key=${key}`;
 
   const contents = [
     ...messages.map((m) => ({
@@ -114,6 +115,7 @@ async function getReply(
   history: Message[],
   providerPreference: AIProviderPreference,
   systemPrompt: string,
+  cloudModelId: string,
 ): Promise<{ reply: string; usedProvider: Provider }> {
   const allMessages: Message[] = [...history, { role: "user", content: userMessage }];
   const providerOrder = getProviderPriority(providerPreference);
@@ -125,7 +127,7 @@ async function getReply(
         return { reply: await askChromeAI(userMessage, systemPrompt), usedProvider: "chrome-ai" };
       }
       if (candidate === "gemini" && process.env.NEXT_PUBLIC_GEMINI_API_KEY) {
-        return { reply: await askGemini(allMessages, systemPrompt), usedProvider: "gemini" };
+        return { reply: await askGemini(allMessages, systemPrompt, cloudModelId), usedProvider: "gemini" };
       }
       if (candidate === "openai" && process.env.NEXT_PUBLIC_OPENAI_API_KEY) {
         return { reply: await askOpenAI(allMessages, systemPrompt), usedProvider: "openai" };
@@ -137,7 +139,7 @@ async function getReply(
 
   return {
     reply:
-      "I'm not connected to an AI model right now. Please add a Gemini or OpenAI API key to enable chat — see the setup guide in /docs/ai-chat-setup.md.",
+      "Quick take: I’m not connected to an AI model yet.\nWhy it fits: Add a Gemini, Gemma, or OpenAI key, or enable on-device AI.\nNext step: Open AI Context and choose a provider.",
     usedProvider: "fallback",
   };
 }
@@ -145,8 +147,8 @@ async function getReply(
 /* ─── Provider labels ────────────────────────────────────────────────────── */
 const PROVIDER_LABELS: Record<Provider, string> = {
   "chrome-ai": "On-device AI · Gemini Nano",
-  gemini: "Gemini AI",
-  openai: "ChatGPT · GPT-4o mini",
+  gemini: "Google AI API",
+  openai: "OpenAI API",
   fallback: "AI not configured",
 };
 
@@ -163,6 +165,16 @@ function getProviderSetupHint(provider: Provider): string | null {
   }
 
   return "Build-time env vars are missing. Set NEXT_PUBLIC_GEMINI_API_KEY or NEXT_PUBLIC_OPENAI_API_KEY in GitHub Actions and redeploy.";
+}
+
+function formatAssistantContent(content: string) {
+  const lines = content
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => line.replace(/^\d+\.\s*/, "").replace(/^[-*]\s*/, ""));
+
+  return lines;
 }
 
 /* ─── YogaCandy logo avatar ──────────────────────────────────────────────── */
@@ -344,9 +356,16 @@ export default function ChatWidget() {
         pathname,
         siteSignals: getPageSignals(pathname),
       },
+      modelId: aiSettings.cloudModelId,
     });
 
-    const { reply, usedProvider } = await getReply(userMessage, messages, aiSettings.providerPreference, systemPrompt);
+    const { reply, usedProvider } = await getReply(
+      userMessage,
+      messages,
+      aiSettings.providerPreference,
+      systemPrompt,
+      aiSettings.cloudModelId,
+    );
 
     if (usedProvider !== provider) setProvider(usedProvider);
 
@@ -387,6 +406,8 @@ export default function ChatWidget() {
       siteSignals: getPageSignals(pathname),
     },
   );
+  const selectedModelLabel =
+    AI_CLOUD_MODEL_OPTIONS.find((option) => option.value === aiSettings.cloudModelId)?.label ?? aiSettings.cloudModelId;
 
   return (
     <div id="ai-assistant" className="fixed bottom-6 right-6 z-[100]">
@@ -424,28 +445,55 @@ export default function ChatWidget() {
           </div>
 
           <div className="border-b border-gray-200 bg-gray-50 p-3 text-xs">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="font-bold text-gray-700">AI Context</p>
-                <p className="text-[10px] text-gray-500">Brief, grounded, profile-aware responses</p>
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="font-bold text-gray-700">AI Context</p>
+                  <p className="text-[10px] text-gray-500">Brief, grounded, profile-aware responses</p>
+                </div>
+                <p className="text-[10px] text-gray-500 font-semibold">Model: {selectedModelLabel}</p>
               </div>
-              <select
-                value={aiSettings.providerPreference}
-                onChange={(e) =>
-                  setAiSettings((prev) => ({
-                    ...prev,
-                    providerPreference: e.target.value as AIProviderPreference,
-                  }))
-                }
-                className="rounded-full border border-gray-200 bg-white px-3 py-1.5 text-[11px] font-semibold text-gray-700 focus:outline-none focus:border-black"
-                aria-label="Select AI provider preference"
-              >
-                {AI_PROVIDER_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
+
+            <div className="mt-3 grid gap-2">
+              <div className="flex flex-col gap-1">
+                <label className="text-[10px] uppercase tracking-wider text-gray-400 font-semibold">Provider</label>
+                <select
+                  value={aiSettings.providerPreference}
+                  onChange={(e) =>
+                    setAiSettings((prev) => ({
+                      ...prev,
+                      providerPreference: e.target.value as AIProviderPreference,
+                    }))
+                  }
+                  className="rounded-full border border-gray-200 bg-white px-3 py-1.5 text-[11px] font-semibold text-gray-700 focus:outline-none focus:border-black"
+                  aria-label="Select AI provider preference"
+                >
+                  {AI_PROVIDER_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex flex-col gap-1">
+                <label className="text-[10px] uppercase tracking-wider text-gray-400 font-semibold">Cloud model</label>
+                <select
+                  value={aiSettings.cloudModelId}
+                  onChange={(e) =>
+                    setAiSettings((prev) => ({
+                      ...prev,
+                      cloudModelId: e.target.value as AIUserSettings["cloudModelId"],
+                    }))
+                  }
+                  className="rounded-full border border-gray-200 bg-white px-3 py-1.5 text-[11px] font-semibold text-gray-700 focus:outline-none focus:border-black"
+                  aria-label="Select cloud model"
+                  >
+                  {AI_CLOUD_MODEL_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
 
             <div className="mt-3 grid grid-cols-2 gap-2">
@@ -468,13 +516,37 @@ export default function ChatWidget() {
             {messages.map((msg, i) => (
               <div
                 key={i}
-                className={`p-3 rounded-xl text-sm shadow-sm max-w-[85%] leading-relaxed ${
+                className={`p-3 rounded-xl text-sm shadow-sm max-w-[85%] leading-relaxed whitespace-pre-line ${
                   msg.role === "assistant"
                     ? "bg-white border text-gray-700 self-start rounded-tl-none"
                     : "bg-black text-white self-end rounded-tr-none"
                 }`}
               >
-                {msg.content}
+                {msg.role === "assistant" ? (
+                  <div className="space-y-2">
+                    {formatAssistantContent(msg.content).map((line, index) => {
+                      const match = line.match(/^(Quick take|Why it fits|Next step)\s*:\s*(.*)$/i);
+                      if (match) {
+                        return (
+                          <div key={index} className="rounded-lg bg-gray-50 border border-gray-100 px-3 py-2">
+                            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-blue-600">
+                              {match[1]}
+                            </p>
+                            <p className="mt-1 text-sm leading-relaxed">{match[2] || '—'}</p>
+                          </div>
+                        );
+                      }
+
+                      return (
+                        <p key={index} className="text-sm leading-relaxed">
+                          {line}
+                        </p>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  msg.content
+                )}
               </div>
             ))}
             {isLoading && (

@@ -2,12 +2,14 @@ export type AIProviderPreference = 'auto' | 'on-device' | 'gemini' | 'openai';
 export type AIResponseStyle = 'brief' | 'simple' | 'detailed';
 export type AIRecommendationMode = 'deterministic' | 'hybrid' | 'ai';
 export type AIContextScope = 'profile' | 'profile+location' | 'profile+location+site';
+export type AICloudModelId = 'gemini-2.5-flash' | 'gemma-3-27b-it' | 'gemma-3n-e4b-it';
 
 export interface AIUserSettings {
   providerPreference: AIProviderPreference;
   responseStyle: AIResponseStyle;
   recommendationMode: AIRecommendationMode;
   contextScope: AIContextScope;
+  cloudModelId: AICloudModelId;
   primaryGoal: string;
   physicalConsideration: string;
   availabilityWindow: string;
@@ -59,6 +61,12 @@ export const AI_CONTEXT_SCOPE_OPTIONS: Array<{ value: AIContextScope; label: str
   },
 ];
 
+export const AI_CLOUD_MODEL_OPTIONS: Array<{ value: AICloudModelId; label: string; description: string }> = [
+  { value: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash', description: 'Balanced general-purpose cloud model.' },
+  { value: 'gemma-3-27b-it', label: 'Gemma 3 27B IT', description: 'Open model for richer text generation.' },
+  { value: 'gemma-3n-e4b-it', label: 'Gemma 3n E4B IT', description: 'Smaller open model for lighter usage.' },
+];
+
 export const AI_GOAL_OPTIONS = [
   { value: 'flexibility', label: 'Flexibility' },
   { value: 'strength', label: 'Strength' },
@@ -93,6 +101,7 @@ export function defaultAIUserSettings(): AIUserSettings {
     responseStyle: 'brief',
     recommendationMode: 'hybrid',
     contextScope: 'profile+location+site',
+    cloudModelId: 'gemini-2.5-flash',
     primaryGoal: 'stress',
     physicalConsideration: 'none',
     availabilityWindow: '30 minutes',
@@ -120,6 +129,7 @@ export function normalizeAIUserSettings(raw: unknown): AIUserSettings {
   const responseStyle = read(['ai_response_style']) as AIResponseStyle | undefined;
   const recommendationMode = read(['ai_recommendation_mode']) as AIRecommendationMode | undefined;
   const contextScope = read(['ai_context_scope']) as AIContextScope | undefined;
+  const cloudModelId = read(['ai_cloud_model_id']) as AICloudModelId | undefined;
   const primaryGoal = read(['ai_primary_goal']) ?? base.primaryGoal;
   const physicalConsideration = read(['ai_physical_consideration']) ?? base.physicalConsideration;
   const availabilityWindow = read(['ai_availability_window']) ?? base.availabilityWindow;
@@ -129,6 +139,7 @@ export function normalizeAIUserSettings(raw: unknown): AIUserSettings {
     responseStyle: responseStyle ?? base.responseStyle,
     recommendationMode: recommendationMode ?? base.recommendationMode,
     contextScope: contextScope ?? base.contextScope,
+    cloudModelId: cloudModelId ?? base.cloudModelId,
     primaryGoal,
     physicalConsideration,
     availabilityWindow,
@@ -141,6 +152,7 @@ export function serializeAIUserSettings(settings: AIUserSettings) {
     ai_response_style: settings.responseStyle,
     ai_recommendation_mode: settings.recommendationMode,
     ai_context_scope: settings.contextScope,
+    ai_cloud_model_id: settings.cloudModelId,
     ai_primary_goal: settings.primaryGoal,
     ai_physical_consideration: settings.physicalConsideration,
     ai_availability_window: settings.availabilityWindow,
@@ -161,17 +173,18 @@ export function buildAIContextSummary(
         profile.yogaGoals?.length ? `Goals: ${profile.yogaGoals.join(', ')}` : null,
         profile.preferredStyles?.length ? `Styles: ${profile.preferredStyles.join(', ')}` : null,
       ].filter(Boolean).join(' | ')
-    : 'No saved profile yet';
+    : 'No profile saved yet. Complete your profile to personalize recommendations.';
 
   const locationSummary = location?.city
     ? [location.city, location.country ?? location.countryCode ?? ''].filter(Boolean).join(', ')
-    : 'Location not set';
+    : 'Location not set. Allow location or enter your city and country.';
 
   return {
     profileSummary,
     locationSummary,
     settingsSummary: [
       `Provider: ${settings.providerPreference}`,
+      `Cloud model: ${settings.cloudModelId}`,
       `Replies: ${settings.responseStyle}`,
       `Mode: ${settings.recommendationMode}`,
       `Scope: ${settings.contextScope}`,
@@ -189,28 +202,34 @@ export function buildGroundedChatPrompt(args: {
   location: { city?: string | null; country?: string | null; countryCode?: string | null } | null;
   settings: AIUserSettings;
   page: AIPageContext;
+  modelId?: string;
 }) {
-  const { profile, location, settings, page } = args;
+  const { profile, location, settings, page, modelId } = args;
   const summary = buildAIContextSummary(profile, location, settings, page);
   const locationText = summary.locationSummary;
   const siteSignals = summary.siteSignals.length ? summary.siteSignals.join(', ') : 'none';
   const responseStyleRules = {
-    brief: 'Use exactly 3 short bullets and 1 next action line. Keep each bullet under 16 words.',
-    simple: 'Use exactly 3 short bullets and 1 next action line. Keep each bullet under 22 words.',
-    detailed: 'Use 4 short bullets and 1 next action line. Keep the answer concise and readable.',
+    brief: 'Use exactly 3 labeled lines: Quick take, Why it fits, Next step. Keep each line under 14 words.',
+    simple: 'Use exactly 3 labeled lines: Quick take, Why it fits, Next step. Keep each line under 20 words.',
+    detailed: 'Use exactly 3 labeled lines: Quick take, Why it fits, Next step. Keep each line under 28 words.',
   }[settings.responseStyle];
 
   return [
     'You are the YogaCandy assistant.',
     'Keep every answer grounded, brief, simple, and easy to scan.',
+    'Use plain language only. No paragraphs, no markdown, no extra labels.',
+    'Use this format exactly:',
+    'Quick take: ...',
+    'Why it fits: ...',
+    'Next step: ...',
     responseStyleRules,
-    'Do not write paragraphs.',
     'Ground the answer in the provided profile, location, page, and site context.',
     'If the data is missing, say what is missing in one short bullet.',
     'Do not invent external yoga trends. Only reference the site context and the provided user data.',
     `Profile: ${summary.profileSummary}`,
     `Location: ${locationText}`,
     `Settings: ${summary.settingsSummary}`,
+    modelId ? `Cloud model: ${modelId}` : null,
     `Page: ${summary.pageSummary}`,
     `Site signals: ${siteSignals}`,
   ].join('\n');
