@@ -1,11 +1,19 @@
-'use client';
+"use client";
 
 import { useEffect, useState } from 'react';
+import { supabase } from '@/lib/supabase';
 import { allStyles, type YogaStyle } from '@/app/data/styles';
 import {
   createBuiltInLanguageModelSession,
   getBuiltInLanguageModelAvailability,
 } from '@/lib/browserLanguageModel';
+import {
+  buildAIContextSummary,
+  buildStyleRecommendationPrompt,
+  defaultAIUserSettings,
+  normalizeAIUserSettings,
+  type AIUserSettings,
+} from '@/lib/aiContext';
 
 // ── Questionnaire ─────────────────────────────────────────────────────────────
 interface Question {
@@ -69,6 +77,17 @@ const QUESTIONS: Question[] = [
   },
 ];
 
+interface UserProfileSnapshot {
+  fullName?: string | null;
+  role?: string | null;
+  level?: string | null;
+  yogaGoals?: string[] | null;
+  preferredStyles?: string[] | null;
+  city?: string | null;
+  country?: string | null;
+  countryCode?: string | null;
+}
+
 // ── Rule-based scoring ────────────────────────────────────────────────────────
 function scoreStyleRuleBased(style: YogaStyle, answers: Record<string, string>): number {
   let score = 0;
@@ -109,13 +128,41 @@ function getTopStyles(answers: Record<string, string>, count = 3): YogaStyle[] {
 }
 
 // ── Chrome AI ─────────────────────────────────────────────────────────────────
-async function getAIRecommendation(answers: Record<string, string>): Promise<string[] | null> {
+async function getAIRecommendation(args: {
+  answers: Record<string, string>;
+  profile: UserProfileSnapshot | null;
+  settings: AIUserSettings;
+}): Promise<string[] | null> {
+  const { answers, profile, settings } = args;
+
+  if (settings.recommendationMode === 'deterministic') {
+    return null;
+  }
+
   try {
     const availability = await getBuiltInLanguageModelAvailability();
     if (availability === 'unavailable') return null;
 
+    const systemPrompt = buildStyleRecommendationPrompt({
+      profile,
+      location: profile
+        ? {
+            city: profile.city ?? undefined,
+            country: profile.country ?? undefined,
+            countryCode: profile.countryCode ?? undefined,
+          }
+        : null,
+      settings,
+      page: {
+        pathname: '/styles',
+        siteSignals: ['Yoga styles catalog', 'Style recommender'],
+      },
+      answers,
+      allowedSlugs: allStyles.map((s) => s.slug),
+    });
+
     const session = await createBuiltInLanguageModelSession({
-      systemPrompt: `You are a knowledgeable yoga advisor. You must respond ONLY with a JSON array of exactly 3 yoga style slugs chosen from this list: ${allStyles.map((s) => s.slug).join(', ')}. No other text.`,
+      systemPrompt,
     });
 
     try {
@@ -123,7 +170,7 @@ async function getAIRecommendation(answers: Record<string, string>): Promise<str
         .map(([k, v]) => `${k}: ${v}`)
         .join(', ');
 
-      const raw = await session.prompt(`User preferences — ${prefs}. Return the 3 best-matching yoga style slugs as a JSON array.`);
+      const raw = await session.prompt(`Rank the 3 best matching yoga style slugs for: ${prefs}`);
 
       const parsed = JSON.parse(raw.trim());
       if (Array.isArray(parsed) && parsed.every((s) => typeof s === 'string')) return parsed;
@@ -144,6 +191,8 @@ export default function StyleRecommender() {
   const [loading, setLoading] = useState(false);
   const [usedAI, setUsedAI] = useState(false);
   const [hasOnDeviceAI, setHasOnDeviceAI] = useState(false);
+  const [profile, setProfile] = useState<UserProfileSnapshot | null>(null);
+  const [aiSettings, setAiSettings] = useState<AIUserSettings>(defaultAIUserSettings());
 
   const totalSteps = QUESTIONS.length;
   const currentQ = QUESTIONS[step - 1];
@@ -162,13 +211,66 @@ export default function StyleRecommender() {
     };
   }, []);
 
+  const contextSummary = buildAIContextSummary(
+    profile
+      ? {
+          fullName: profile.fullName ?? undefined,
+          role: profile.role ?? undefined,
+          level: profile.level ?? undefined,
+          yogaGoals: profile.yogaGoals ?? [],
+          preferredStyles: profile.preferredStyles ?? [],
+          city: profile.city ?? undefined,
+          country: profile.country ?? undefined,
+          countryCode: profile.countryCode ?? undefined,
+        }
+      : null,
+    null,
+    aiSettings,
+    {
+      pathname: '/styles',
+      siteSignals: ['Yoga styles catalog', 'Style recommender'],
+    },
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+
+    void (async () => {
+      const { data } = await supabase.auth.getSession();
+      const session = data.session;
+      if (!session?.user) return;
+
+      if (!cancelled) {
+        setAiSettings(normalizeAIUserSettings(session.user.user_metadata));
+      }
+
+      const { data: profileData } = await supabase
+        .from('user_profiles')
+        .select('full_name, role, level, yoga_goals, preferred_styles, city, country_code')
+        .eq('id', session.user.id)
+        .maybeSingle();
+
+      if (!cancelled && profileData) {
+        setProfile(profileData as UserProfileSnapshot);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   async function handleAnswer(value: string) {
     const newAnswers = { ...answers, [currentQ.id]: value };
     setAnswers(newAnswers);
 
     if (step === totalSteps) {
       setLoading(true);
-      const aiSlugs = await getAIRecommendation(newAnswers);
+      const aiSlugs = await getAIRecommendation({
+        answers: newAnswers,
+        profile,
+        settings: aiSettings,
+      });
       if (aiSlugs) {
         const aiStyles = aiSlugs
           .map((slug) => allStyles.find((s) => s.slug === slug))
@@ -205,6 +307,11 @@ export default function StyleRecommender() {
           {hasOnDeviceAI ? 'on-device AI' : 'smart engine'}{' '}
           will match you with the ideal yoga style.
         </p>
+        <div className="mb-6 rounded-2xl bg-white/10 border border-white/20 p-4 text-left text-xs text-blue-50">
+          <p className="font-semibold mb-1">Live context</p>
+          <p className="opacity-90">{contextSummary.profileSummary}</p>
+          <p className="mt-1 opacity-80">{contextSummary.settingsSummary}</p>
+        </div>
         <button
           onClick={() => setStep(1)}
           className="bg-white text-blue-700 font-bold px-8 py-3 rounded-full hover:bg-blue-50 transition-colors"

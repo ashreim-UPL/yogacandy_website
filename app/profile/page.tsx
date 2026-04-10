@@ -2,6 +2,23 @@
 export const dynamic = 'force-static';
 
 import { supabase } from '@/lib/supabase';
+import {
+  AI_AVAILABILITY_OPTIONS,
+  AI_CONTEXT_SCOPE_OPTIONS,
+  AI_GOAL_OPTIONS,
+  AI_PHYSICAL_CONSIDERATION_OPTIONS,
+  AI_PROVIDER_OPTIONS,
+  AI_RECOMMENDATION_MODE_OPTIONS,
+  AI_RESPONSE_STYLE_OPTIONS,
+  buildAIContextSummary,
+  defaultAIUserSettings,
+  normalizeAIUserSettings,
+  serializeAIUserSettings,
+  type AIContextScope,
+  type AIProviderPreference,
+  type AIRecommendationMode,
+  type AIResponseStyle,
+} from '@/lib/aiContext';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
@@ -22,6 +39,13 @@ interface Profile {
   instagram_handle: string;
   marketing_consent: boolean;
   onboarding_complete: boolean;
+  ai_provider_preference: AIProviderPreference;
+  ai_response_style: AIResponseStyle;
+  ai_recommendation_mode: AIRecommendationMode;
+  ai_context_scope: AIContextScope;
+  ai_primary_goal: string;
+  ai_physical_consideration: string;
+  ai_availability_window: string;
 }
 
 const YOGA_GOALS = [
@@ -48,7 +72,7 @@ export default function ProfilePage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
-  const [activeSection, setActiveSection] = useState<'basics' | 'practice' | 'privacy'>('basics');
+  const [activeSection, setActiveSection] = useState<'basics' | 'practice' | 'ai' | 'privacy'>('basics');
 
   const [profile, setProfile] = useState<Partial<Profile>>({
     full_name: '',
@@ -63,8 +87,8 @@ export default function ProfilePage() {
     instagram_handle: '',
     marketing_consent: false,
     onboarding_complete: false,
+    ...defaultAIUserSettings(),
   });
-
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data }) => {
       if (!data.session) { router.push('/auth/signup'); return; }
@@ -72,10 +96,12 @@ export default function ProfilePage() {
       setUserId(u.id);
 
       // Pre-fill from auth metadata
+      const aiSettings = normalizeAIUserSettings(u.user_metadata);
       setProfile((p) => ({
         ...p,
         full_name: u.user_metadata?.full_name ?? '',
         role: u.user_metadata?.role ?? 'student',
+        ...aiSettings,
       }));
 
       // Load existing profile row if it exists
@@ -85,7 +111,13 @@ export default function ProfilePage() {
         .eq('id', u.id)
         .single();
 
-      if (existing) setProfile(existing);
+      if (existing) {
+        setProfile((p) => ({
+          ...p,
+          ...existing,
+          ...aiSettings,
+        }));
+      }
       setLoading(false);
     });
   }, [router]);
@@ -121,8 +153,26 @@ export default function ProfilePage() {
     if (upsertError) {
       setError(upsertError.message);
     } else {
-      setSuccess(true);
-      if (complete) setTimeout(() => router.push('/'), 1200);
+      const { error: authError } = await supabase.auth.updateUser({
+        data: {
+          ...serializeAIUserSettings({
+            providerPreference: profile.ai_provider_preference ?? defaultAIUserSettings().providerPreference,
+            responseStyle: profile.ai_response_style ?? defaultAIUserSettings().responseStyle,
+            recommendationMode: profile.ai_recommendation_mode ?? defaultAIUserSettings().recommendationMode,
+            contextScope: profile.ai_context_scope ?? defaultAIUserSettings().contextScope,
+            primaryGoal: profile.ai_primary_goal ?? defaultAIUserSettings().primaryGoal,
+            physicalConsideration: profile.ai_physical_consideration ?? defaultAIUserSettings().physicalConsideration,
+            availabilityWindow: profile.ai_availability_window ?? defaultAIUserSettings().availabilityWindow,
+          }),
+        },
+      });
+
+      if (authError) {
+        setError(authError.message);
+      } else {
+        setSuccess(true);
+        if (complete) setTimeout(() => router.push('/'), 1200);
+      }
     }
     setSaving(false);
   }
@@ -142,8 +192,41 @@ export default function ProfilePage() {
   const sections = [
     { id: 'basics', label: 'About You', icon: '👤' },
     { id: 'practice', label: 'Practice', icon: '🧘' },
+    { id: 'ai', label: 'AI Context', icon: '🤖' },
     { id: 'privacy', label: 'Privacy', icon: '🔒' },
   ] as const;
+
+  const aiSummary = buildAIContextSummary(
+    {
+      fullName: profile.full_name ?? undefined,
+      role: profile.role ?? undefined,
+      level: profile.level ?? undefined,
+      yogaGoals: profile.yoga_goals ?? [],
+      preferredStyles: profile.preferred_styles ?? [],
+      city: profile.city ?? undefined,
+      country: '',
+      countryCode: profile.country_code ?? undefined,
+      bio: profile.bio ?? undefined,
+    },
+    {
+      city: profile.city ?? undefined,
+      country: profile.country_code ?? undefined,
+      countryCode: profile.country_code ?? undefined,
+    },
+    {
+      providerPreference: profile.ai_provider_preference ?? defaultAIUserSettings().providerPreference,
+      responseStyle: profile.ai_response_style ?? defaultAIUserSettings().responseStyle,
+      recommendationMode: profile.ai_recommendation_mode ?? defaultAIUserSettings().recommendationMode,
+      contextScope: profile.ai_context_scope ?? defaultAIUserSettings().contextScope,
+      primaryGoal: profile.ai_primary_goal ?? defaultAIUserSettings().primaryGoal,
+      physicalConsideration: profile.ai_physical_consideration ?? defaultAIUserSettings().physicalConsideration,
+      availabilityWindow: profile.ai_availability_window ?? defaultAIUserSettings().availabilityWindow,
+    },
+    {
+      pathname: '/profile',
+      siteSignals: ['Profile page', 'User settings'],
+    },
+  );
 
   return (
     <div className="min-h-screen bg-gray-50 py-12 px-4">
@@ -341,6 +424,149 @@ export default function ProfilePage() {
                   ← Back
                 </button>
                 <button onClick={() => setActiveSection('privacy')} className="flex-1 bg-black text-white py-3 rounded-xl font-bold text-sm hover:bg-gray-800 transition-colors">
+                  Next: Privacy →
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* ── AI ── */}
+          {activeSection === 'ai' && (
+            <div className="space-y-6">
+              <div className="bg-gray-50 border border-gray-200 rounded-2xl p-5 text-sm text-gray-700">
+                <p className="font-bold mb-2">AI context dashboard</p>
+                <p className="text-xs text-gray-500 leading-relaxed">
+                  These fields control how the assistant responds and how recommendations are grounded.
+                  The same context will be used across chat and style recommendations.
+                </p>
+                <div className="mt-4 grid gap-2 text-xs">
+                  <div><span className="font-semibold">Profile:</span> {aiSummary.profileSummary}</div>
+                  <div><span className="font-semibold">Location:</span> {aiSummary.locationSummary}</div>
+                  <div><span className="font-semibold">Settings:</span> {aiSummary.settingsSummary}</div>
+                </div>
+              </div>
+
+              <div className="grid gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">AI provider</label>
+                  <select
+                    value={profile.ai_provider_preference ?? defaultAIUserSettings().providerPreference}
+                    onChange={(e) => setProfile((p) => ({ ...p, ai_provider_preference: e.target.value as AIProviderPreference }))}
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-blue-400 text-sm bg-white"
+                  >
+                    {AI_PROVIDER_OPTIONS.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label} - {opt.description}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Response style</label>
+                    <select
+                      value={profile.ai_response_style ?? defaultAIUserSettings().responseStyle}
+                      onChange={(e) => setProfile((p) => ({ ...p, ai_response_style: e.target.value as AIResponseStyle }))}
+                      className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-blue-400 text-sm bg-white"
+                    >
+                      {AI_RESPONSE_STYLE_OPTIONS.map((opt) => (
+                        <option key={opt.value} value={opt.value}>
+                          {opt.label} - {opt.description}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Recommendation mode</label>
+                    <select
+                      value={profile.ai_recommendation_mode ?? defaultAIUserSettings().recommendationMode}
+                      onChange={(e) => setProfile((p) => ({ ...p, ai_recommendation_mode: e.target.value as AIRecommendationMode }))}
+                      className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-blue-400 text-sm bg-white"
+                    >
+                      {AI_RECOMMENDATION_MODE_OPTIONS.map((opt) => (
+                        <option key={opt.value} value={opt.value}>
+                          {opt.label} - {opt.description}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Context scope</label>
+                    <select
+                      value={profile.ai_context_scope ?? defaultAIUserSettings().contextScope}
+                      onChange={(e) => setProfile((p) => ({ ...p, ai_context_scope: e.target.value as AIContextScope }))}
+                      className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-blue-400 text-sm bg-white"
+                    >
+                      {AI_CONTEXT_SCOPE_OPTIONS.map((opt) => (
+                        <option key={opt.value} value={opt.value}>
+                          {opt.label} - {opt.description}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Primary goal</label>
+                    <select
+                      value={profile.ai_primary_goal ?? defaultAIUserSettings().primaryGoal}
+                      onChange={(e) => setProfile((p) => ({ ...p, ai_primary_goal: e.target.value }))}
+                      className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-blue-400 text-sm bg-white"
+                    >
+                      {AI_GOAL_OPTIONS.map((opt) => (
+                        <option key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Availability window</label>
+                    <select
+                      value={profile.ai_availability_window ?? defaultAIUserSettings().availabilityWindow}
+                      onChange={(e) => setProfile((p) => ({ ...p, ai_availability_window: e.target.value }))}
+                      className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-blue-400 text-sm bg-white"
+                    >
+                      {AI_AVAILABILITY_OPTIONS.map((opt) => (
+                        <option key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Physical consideration</label>
+                    <select
+                      value={profile.ai_physical_consideration ?? defaultAIUserSettings().physicalConsideration}
+                      onChange={(e) => setProfile((p) => ({ ...p, ai_physical_consideration: e.target.value }))}
+                      className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-blue-400 text-sm bg-white"
+                    >
+                      {AI_PHYSICAL_CONSIDERATION_OPTIONS.map((opt) => (
+                        <option key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setActiveSection('practice')}
+                  className="flex-1 border border-gray-200 py-3 rounded-xl font-bold text-sm hover:bg-gray-50 transition-colors"
+                >
+                  ← Back
+                </button>
+                <button
+                  onClick={() => setActiveSection('privacy')}
+                  className="flex-1 bg-black text-white py-3 rounded-xl font-bold text-sm hover:bg-gray-800 transition-colors"
+                >
                   Next: Privacy →
                 </button>
               </div>
