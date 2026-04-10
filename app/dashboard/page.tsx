@@ -9,10 +9,10 @@ import { getArticlesForCountry, type Article } from "@/app/data/articles";
 import {
   getEventsForLocation,
   getEventsForLocationFromDataset,
-  mapSupabaseEventRow,
+  loadLiveEvents,
   type EventListing,
-  type SupabaseEventRow,
 } from "@/app/data/events";
+import NearbyStudios from "@/components/NearbyStudios";
 import {
   AI_CLOUD_MODEL_OPTIONS,
   buildAIContextSummary,
@@ -192,23 +192,17 @@ export default function DashboardPage() {
     let cancelled = false;
 
     void (async () => {
-      const { data, error } = await supabase
-        .from("events")
-        .select("id,title,event_date,format,city,country,country_code,price,description,source_name,tags")
-        .order("event_date", { ascending: true });
-
+      const { events, error } = await loadLiveEvents();
       if (cancelled) return;
 
-      if (error || !data) {
+      if (error || !events.length) {
         setLiveEvents([]);
         setLiveFeedStatus("empty");
         return;
       }
 
-      const rows = data as SupabaseEventRow[];
-      const mapped = rows.map(mapSupabaseEventRow);
-      setLiveEvents(mapped);
-      setLiveFeedStatus(mapped.length > 0 ? "loaded" : "empty");
+      setLiveEvents(events);
+      setLiveFeedStatus("loaded");
     })();
 
     return () => {
@@ -416,6 +410,10 @@ export default function DashboardPage() {
             </div>
           </section>
         </div>
+
+        <section className="mb-6">
+          <NearbyStudios styleName={topStyles[0]?.name} />
+        </section>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
           <section className="bg-white rounded-3xl p-8 border border-gray-100 shadow-sm">

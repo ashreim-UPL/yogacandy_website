@@ -9,6 +9,9 @@ export interface Article {
   regions: string[];
   styleSlug?: string; // links to a yoga style detail page
   externalUrl?: string; // optional link to full article
+  sourceType?: 'external' | 'ai' | 'teacher' | 'student' | 'editorial';
+  reviewStatus?: 'verified' | 'needs-review' | 'draft';
+  author?: string;
 }
 
 export const allArticles: Article[] = [

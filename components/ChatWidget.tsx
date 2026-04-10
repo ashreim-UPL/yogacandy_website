@@ -28,9 +28,9 @@ interface Message {
 type Provider = "chrome-ai" | "gemini" | "openai" | "fallback";
 
 function getProviderPriority(preference: AIProviderPreference): Provider[] {
-  if (preference === "on-device") return ["chrome-ai", "gemini", "openai"];
-  if (preference === "gemini") return ["gemini", "chrome-ai", "openai"];
-  if (preference === "openai") return ["openai", "chrome-ai", "gemini"];
+  if (preference === "on-device") return ["chrome-ai"];
+  if (preference === "gemini") return ["gemini"];
+  if (preference === "openai") return ["openai"];
   return ["chrome-ai", "gemini", "openai"];
 }
 
@@ -121,6 +121,7 @@ async function getReply(
   const allMessages: Message[] = [...history, { role: "user", content: userMessage }];
   const providerOrder = getProviderPriority(providerPreference);
   const chromeAvailable = await canUseBuiltInLanguageModel();
+  const explicitPreference = providerPreference !== "auto";
 
   for (const candidate of providerOrder) {
     try {
@@ -135,7 +136,25 @@ async function getReply(
       }
     } catch (err) {
       console.warn(`[ChatWidget] Provider "${candidate}" failed:`, err);
+      if (explicitPreference) break;
     }
+  }
+
+  if (explicitPreference) {
+    if (providerPreference === "on-device") {
+      return {
+        reply:
+          "Quick take: On-device AI is unavailable here.\nWhy it fits: Your browser needs Chrome built-in AI support.\nNext step: Switch to Auto or use Gemini/OpenAI.",
+        usedProvider: "fallback",
+      };
+    }
+
+    const configuredLabel = providerPreference === "gemini" ? "Gemini" : "OpenAI";
+    return {
+      reply:
+        `Quick take: ${configuredLabel} is not ready right now.\nWhy it fits: The selected provider needs a valid API key and deploy config.\nNext step: Switch to Auto or fix the ${configuredLabel} key.`,
+      usedProvider: "fallback",
+    };
   }
 
   return {
@@ -144,14 +163,6 @@ async function getReply(
     usedProvider: "fallback",
   };
 }
-
-/* ─── Provider labels ────────────────────────────────────────────────────── */
-const PROVIDER_LABELS: Record<Provider, string> = {
-  "chrome-ai": "On-device AI · Gemini Nano",
-  gemini: "Google AI API",
-  openai: "OpenAI API",
-  fallback: "AI not configured",
-};
 
 function getProviderSetupHint(provider: Provider): string | null {
   if (provider === "chrome-ai") return null;
@@ -316,7 +327,13 @@ export default function ChatWidget() {
         return false;
       });
 
-      if (!cancelled) setProvider(nextProvider ?? "fallback");
+      if (!cancelled) {
+        if (aiSettings.providerPreference === "auto") {
+          setProvider(nextProvider ?? "fallback");
+        } else {
+          setProvider(nextProvider ?? "fallback");
+        }
+      }
     })();
 
     return () => {
@@ -417,6 +434,14 @@ export default function ChatWidget() {
   );
   const selectedModelLabel =
     AI_CLOUD_MODEL_OPTIONS.find((option) => option.value === aiSettings.cloudModelId)?.label ?? aiSettings.cloudModelId;
+  const providerLabel =
+    provider === "chrome-ai"
+      ? "On-device AI · Gemini Nano"
+      : provider === "gemini"
+        ? `Gemini API · ${selectedModelLabel}`
+        : provider === "openai"
+          ? "OpenAI API"
+          : "AI unavailable";
 
   return (
     <div id="ai-assistant" className="fixed bottom-6 right-6 z-[100]">
@@ -429,7 +454,7 @@ export default function ChatWidget() {
                 <h3 className="font-bold text-sm">YogaCandy Assistant</h3>
                 <div className="flex items-center gap-1.5">
                   <span className={`w-1.5 h-1.5 rounded-full ${providerDotColor[provider]}`} />
-                  <p className="text-[10px] text-gray-400">{PROVIDER_LABELS[provider]}</p>
+                  <p className="text-[10px] text-gray-400">{providerLabel}</p>
                 </div>
                 {provider === "fallback" && (
                   <p className="mt-1 text-[10px] text-gray-500 max-w-[220px] leading-snug">
