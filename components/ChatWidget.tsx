@@ -148,6 +148,21 @@ const PROVIDER_LABELS: Record<Provider, string> = {
   fallback: "AI not configured",
 };
 
+function getProviderSetupHint(provider: Provider): string | null {
+  if (provider === "chrome-ai") return null;
+  if (provider === "gemini") return null;
+  if (provider === "openai") return null;
+
+  const hasGeminiKey = Boolean(process.env.NEXT_PUBLIC_GEMINI_API_KEY);
+  const hasOpenAIKey = Boolean(process.env.NEXT_PUBLIC_OPENAI_API_KEY);
+
+  if (hasGeminiKey || hasOpenAIKey) {
+    return "The configured key could not be used in this browser session.";
+  }
+
+  return "Build-time env vars are missing. Set NEXT_PUBLIC_GEMINI_API_KEY or NEXT_PUBLIC_OPENAI_API_KEY in GitHub Actions and redeploy.";
+}
+
 /* ─── YogaCandy logo avatar ──────────────────────────────────────────────── */
 function YCAvatar({ size = 32 }: { size?: number }) {
   return (
@@ -259,6 +274,11 @@ export default function ChatWidget() {
                   <span className={`w-1.5 h-1.5 rounded-full ${providerDotColor[provider]}`} />
                   <p className="text-[10px] text-gray-400">{PROVIDER_LABELS[provider]}</p>
                 </div>
+                {provider === "fallback" && (
+                  <p className="mt-1 text-[10px] text-gray-500 max-w-[220px] leading-snug">
+                    {getProviderSetupHint(provider)}
+                  </p>
+                )}
               </div>
             </div>
             <button

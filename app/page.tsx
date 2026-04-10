@@ -1,4 +1,3 @@
-import ChatWidget from "@/components/ChatWidget";
 import InstagramFeed from "@/components/InstagramFeed";
 import LocationBanner from "@/components/LocationBanner";
 import NearbyStudios from "@/components/NearbyStudios";
@@ -303,8 +302,6 @@ export default function Home() {
           </div>
         </div>
       </section>
-
-      <ChatWidget />
     </div>
   );
 }

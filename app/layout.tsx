@@ -1,5 +1,6 @@
 import { publicSiteConfig } from "@/app/config/public";
 import { LocationProvider } from "@/app/context/LocationContext";
+import ChatWidget from "@/components/ChatWidget";
 import CookieConsent from "@/components/CookieConsent";
 import Header from "@/components/Header";
 import Link from "next/link";
@@ -72,6 +73,7 @@ export default function RootLayout({
         <LocationProvider>
           <Header />
           <main className="flex-grow">{children}</main>
+          <ChatWidget />
 
           <footer className="border-t bg-gray-50 py-12">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 md:grid-cols-4 gap-8">
