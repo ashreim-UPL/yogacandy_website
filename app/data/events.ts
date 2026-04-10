@@ -1,3 +1,5 @@
+import { supabase } from '@/lib/supabase';
+
 export interface EventListing {
   id: string;
   title: string;
@@ -24,6 +26,21 @@ export interface SupabaseEventRow {
   description: string | null;
   source_name: string | null;
   tags: string[] | null;
+}
+
+export interface SupabaseEventListingRow {
+  id: string;
+  title: string;
+  event_date: string;
+  format: 'Online' | 'In person' | 'Hybrid' | string;
+  city: string | null;
+  country: string | null;
+  country_code: string | null;
+  price: string | null;
+  description: string | null;
+  source_name: string | null;
+  tags: string[] | null;
+  status?: string | null;
 }
 
 export const aggregationWorkflow = [
@@ -148,6 +165,63 @@ export function mapSupabaseEventRow(row: SupabaseEventRow): EventListing {
     description: row.description ?? '',
     source: row.source_name ?? 'Event API',
     tags: row.tags ?? [],
+  };
+}
+
+export function mapSupabaseEventListingRow(row: SupabaseEventListingRow): EventListing {
+  return {
+    id: row.id,
+    title: row.title,
+    date: row.event_date,
+    format: row.format === 'Hybrid' ? 'Hybrid' : row.format === 'Online' ? 'Online' : 'In person',
+    city: row.city ?? 'Online',
+    country: row.country ?? 'Global',
+    countryCode: row.country_code ?? 'GL',
+    price: row.price ?? 'Free',
+    description: row.description ?? '',
+    source: row.source_name ?? 'Event listings',
+    tags: row.tags ?? [],
+  };
+}
+
+function dedupeEvents(events: EventListing[]) {
+  const seen = new Set<string>();
+  return events.filter((event) => {
+    const key = `${event.title.toLowerCase()}|${event.date}|${event.city.toLowerCase()}|${event.countryCode}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+export async function loadLiveEvents() {
+  const [eventRows, listingRows] = await Promise.all([
+    supabase
+      .from('events')
+      .select('id,title,event_date,format,city,country,country_code,price,description,source_name,tags')
+      .order('event_date', { ascending: true }),
+    supabase
+      .from('event_listings')
+      .select('id,title,event_date,format,city,country,country_code,price,description,source_name,tags,status')
+      .eq('status', 'active')
+      .order('event_date', { ascending: true }),
+  ]);
+
+  const rows: EventListing[] = [];
+
+  if (eventRows.data) {
+    rows.push(...(eventRows.data as SupabaseEventRow[]).map(mapSupabaseEventRow));
+  }
+  if (listingRows.data) {
+    rows.push(...(listingRows.data as SupabaseEventListingRow[]).map(mapSupabaseEventListingRow));
+  }
+
+  const deduped = dedupeEvents(rows);
+  return {
+    events: deduped,
+    hasLiveRows: deduped.length > 0,
+    hasAnySourceRows: Boolean(eventRows.data?.length || listingRows.data?.length),
+    error: eventRows.error ?? listingRows.error ?? null,
   };
 }
 

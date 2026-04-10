@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useLocation } from '@/app/context/LocationContext';
-import { aggregationWorkflow, getEventsForLocation, getEventsForLocationFromDataset, mapSupabaseEventRow, type EventListing, type SupabaseEventRow } from '@/app/data/events';
+import { aggregationWorkflow, getEventsForLocation, getEventsForLocationFromDataset, loadLiveEvents, type EventListing } from '@/app/data/events';
 import { supabase } from '@/lib/supabase';
 import { useEffect, useState } from 'react';
 
@@ -42,23 +42,18 @@ export default function EventsPage() {
     let cancelled = false;
 
     void (async () => {
-      const { data, error } = await supabase
-        .from('events')
-        .select('id,title,event_date,format,city,country,country_code,price,description,source_name,tags')
-        .order('event_date', { ascending: true });
+      const { events, error } = await loadLiveEvents();
 
       if (cancelled) return;
 
-      if (error || !data) {
+      if (error || !events.length) {
         setLiveEvents([]);
         setLiveFeedStatus('empty');
         return;
       }
 
-      const rows = data as SupabaseEventRow[];
-      const mapped = rows.map(mapSupabaseEventRow);
-      setLiveEvents(mapped);
-      setLiveFeedStatus(mapped.length > 0 ? 'loaded' : 'empty');
+      setLiveEvents(events);
+      setLiveFeedStatus('loaded');
     })();
 
     return () => {

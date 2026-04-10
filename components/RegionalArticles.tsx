@@ -45,10 +45,22 @@ export default function RegionalArticles() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {articles.map((article) => {
             const isLocal = location?.countryCode && article.regions.includes(location.countryCode) && !article.regions.includes('global');
+            const sourceLabel =
+              article.sourceType === 'external'
+                ? 'External'
+                : article.sourceType === 'teacher'
+                  ? 'Teacher'
+                  : article.sourceType === 'student'
+                    ? 'Student'
+                    : article.sourceType === 'ai'
+                      ? 'AI'
+                      : 'Editorial';
             return (
               <Link
                 key={article.id}
                 href={article.externalUrl ?? `/articles/${article.id}`}
+                target={article.externalUrl ? '_blank' : undefined}
+                rel={article.externalUrl ? 'noreferrer' : undefined}
                 className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-md hover:border-gray-200 transition-all group flex flex-col"
               >
                 <div className="flex items-center gap-2 mb-3 flex-wrap">
@@ -60,6 +72,9 @@ export default function RegionalArticles() {
                       Local
                     </span>
                   )}
+                  <span className="text-[10px] font-bold uppercase tracking-widest bg-blue-50 text-blue-700 border border-blue-100 px-2 py-0.5 rounded">
+                    {sourceLabel}
+                  </span>
                 </div>
                 <h3 className="font-bold text-base mb-2 group-hover:text-blue-600 transition-colors leading-snug flex-grow">
                   {article.title}
