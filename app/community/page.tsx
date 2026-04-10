@@ -58,23 +58,23 @@ export default function CommunityPage() {
               <div className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm">
                 <div className="flex items-center gap-3 mb-4">
                   <span className="text-2xl">🧑‍🏫</span>
-                  <h3 className="text-xl font-bold">Teacher and student profiles</h3>
+                  <h3 className="text-xl font-bold">One signup, one profile</h3>
                 </div>
                 <p className="text-gray-500 mb-6 text-sm">
-                  Account creation should happen only once in the main signup flow. After that we can store teacher and student profile details in a backend database and keep the rest of the site read-only.
+                  Create your account once in the main signup flow. Then complete your profile to save your goals, yoga style preferences, AI settings, and location for personalised recommendations.
                 </p>
                 <div className="flex flex-wrap gap-3">
                   <Link
-                    href="/auth/signup?role=teacher"
+                    href="/auth/signup"
                     className="bg-black text-white font-bold py-3 px-5 rounded-xl hover:bg-gray-800 transition-all uppercase tracking-widest text-xs"
                   >
-                    Register as Teacher
+                    Create Account
                   </Link>
                   <Link
-                    href="/auth/signup"
+                    href="/profile"
                     className="border border-gray-200 text-gray-800 font-bold py-3 px-5 rounded-xl hover:bg-gray-50 transition-all uppercase tracking-widest text-xs"
                   >
-                    Register as Student
+                    Complete Profile
                   </Link>
                 </div>
               </div>
@@ -85,7 +85,7 @@ export default function CommunityPage() {
                   <h3 className="text-xl font-bold">Backend profile storage</h3>
                 </div>
                 <p className="text-gray-500 text-sm leading-relaxed">
-                  The current signup flow already uses Supabase auth, but profiles should eventually live in a real users table so we can manage teacher bios, saved preferences, and event submissions without duplicating registration forms across the site.
+                  The current signup flow already uses Supabase auth, and the profile page stores your saved preferences in the backend so we can personalize chat, style recommendations, and event suggestions without asking you to re-enter the same details everywhere.
                 </p>
               </div>
             </div>

@@ -4,6 +4,7 @@ export const dynamic = 'force-static';
 import { supabase } from '@/lib/supabase';
 import {
   AI_AVAILABILITY_OPTIONS,
+  AI_CLOUD_MODEL_OPTIONS,
   AI_CONTEXT_SCOPE_OPTIONS,
   AI_GOAL_OPTIONS,
   AI_PHYSICAL_CONSIDERATION_OPTIONS,
@@ -14,6 +15,7 @@ import {
   defaultAIUserSettings,
   normalizeAIUserSettings,
   serializeAIUserSettings,
+  type AICloudModelId,
   type AIContextScope,
   type AIProviderPreference,
   type AIRecommendationMode,
@@ -43,6 +45,7 @@ interface Profile {
   ai_response_style: AIResponseStyle;
   ai_recommendation_mode: AIRecommendationMode;
   ai_context_scope: AIContextScope;
+  ai_cloud_model_id: AICloudModelId;
   ai_primary_goal: string;
   ai_physical_consideration: string;
   ai_availability_window: string;
@@ -87,7 +90,14 @@ export default function ProfilePage() {
     instagram_handle: '',
     marketing_consent: false,
     onboarding_complete: false,
-    ...defaultAIUserSettings(),
+    ai_provider_preference: defaultAIUserSettings().providerPreference,
+    ai_response_style: defaultAIUserSettings().responseStyle,
+    ai_recommendation_mode: defaultAIUserSettings().recommendationMode,
+    ai_context_scope: defaultAIUserSettings().contextScope,
+    ai_cloud_model_id: defaultAIUserSettings().cloudModelId,
+    ai_primary_goal: defaultAIUserSettings().primaryGoal,
+    ai_physical_consideration: defaultAIUserSettings().physicalConsideration,
+    ai_availability_window: defaultAIUserSettings().availabilityWindow,
   });
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data }) => {
@@ -101,7 +111,14 @@ export default function ProfilePage() {
         ...p,
         full_name: u.user_metadata?.full_name ?? '',
         role: u.user_metadata?.role ?? 'student',
-        ...aiSettings,
+        ai_provider_preference: aiSettings.providerPreference,
+        ai_response_style: aiSettings.responseStyle,
+        ai_recommendation_mode: aiSettings.recommendationMode,
+        ai_context_scope: aiSettings.contextScope,
+        ai_cloud_model_id: aiSettings.cloudModelId,
+        ai_primary_goal: aiSettings.primaryGoal,
+        ai_physical_consideration: aiSettings.physicalConsideration,
+        ai_availability_window: aiSettings.availabilityWindow,
       }));
 
       // Load existing profile row if it exists
@@ -115,7 +132,14 @@ export default function ProfilePage() {
         setProfile((p) => ({
           ...p,
           ...existing,
-          ...aiSettings,
+          ai_provider_preference: aiSettings.providerPreference,
+          ai_response_style: aiSettings.responseStyle,
+          ai_recommendation_mode: aiSettings.recommendationMode,
+          ai_context_scope: aiSettings.contextScope,
+          ai_cloud_model_id: aiSettings.cloudModelId,
+          ai_primary_goal: aiSettings.primaryGoal,
+          ai_physical_consideration: aiSettings.physicalConsideration,
+          ai_availability_window: aiSettings.availabilityWindow,
         }));
       }
       setLoading(false);
@@ -139,8 +163,20 @@ export default function ProfilePage() {
     setSaving(true);
     setError(null);
 
+    const {
+      ai_provider_preference,
+      ai_response_style,
+      ai_recommendation_mode,
+      ai_context_scope,
+      ai_cloud_model_id,
+      ai_primary_goal,
+      ai_physical_consideration,
+      ai_availability_window,
+      ...profilePayload
+    } = profile;
+
     const payload = {
-      ...profile,
+      ...profilePayload,
       id: userId,
       onboarding_complete: complete || profile.onboarding_complete,
       updated_at: new Date().toISOString(),
@@ -156,13 +192,14 @@ export default function ProfilePage() {
       const { error: authError } = await supabase.auth.updateUser({
         data: {
           ...serializeAIUserSettings({
-            providerPreference: profile.ai_provider_preference ?? defaultAIUserSettings().providerPreference,
-            responseStyle: profile.ai_response_style ?? defaultAIUserSettings().responseStyle,
-            recommendationMode: profile.ai_recommendation_mode ?? defaultAIUserSettings().recommendationMode,
-            contextScope: profile.ai_context_scope ?? defaultAIUserSettings().contextScope,
-            primaryGoal: profile.ai_primary_goal ?? defaultAIUserSettings().primaryGoal,
-            physicalConsideration: profile.ai_physical_consideration ?? defaultAIUserSettings().physicalConsideration,
-            availabilityWindow: profile.ai_availability_window ?? defaultAIUserSettings().availabilityWindow,
+            providerPreference: ai_provider_preference ?? defaultAIUserSettings().providerPreference,
+            responseStyle: ai_response_style ?? defaultAIUserSettings().responseStyle,
+            recommendationMode: ai_recommendation_mode ?? defaultAIUserSettings().recommendationMode,
+            contextScope: ai_context_scope ?? defaultAIUserSettings().contextScope,
+            cloudModelId: ai_cloud_model_id ?? defaultAIUserSettings().cloudModelId,
+            primaryGoal: ai_primary_goal ?? defaultAIUserSettings().primaryGoal,
+            physicalConsideration: ai_physical_consideration ?? defaultAIUserSettings().physicalConsideration,
+            availabilityWindow: ai_availability_window ?? defaultAIUserSettings().availabilityWindow,
           }),
         },
       });
@@ -212,16 +249,17 @@ export default function ProfilePage() {
       city: profile.city ?? undefined,
       country: profile.country_code ?? undefined,
       countryCode: profile.country_code ?? undefined,
-    },
-    {
-      providerPreference: profile.ai_provider_preference ?? defaultAIUserSettings().providerPreference,
-      responseStyle: profile.ai_response_style ?? defaultAIUserSettings().responseStyle,
-      recommendationMode: profile.ai_recommendation_mode ?? defaultAIUserSettings().recommendationMode,
-      contextScope: profile.ai_context_scope ?? defaultAIUserSettings().contextScope,
-      primaryGoal: profile.ai_primary_goal ?? defaultAIUserSettings().primaryGoal,
-      physicalConsideration: profile.ai_physical_consideration ?? defaultAIUserSettings().physicalConsideration,
-      availabilityWindow: profile.ai_availability_window ?? defaultAIUserSettings().availabilityWindow,
-    },
+      },
+      {
+        providerPreference: profile.ai_provider_preference ?? defaultAIUserSettings().providerPreference,
+        responseStyle: profile.ai_response_style ?? defaultAIUserSettings().responseStyle,
+        recommendationMode: profile.ai_recommendation_mode ?? defaultAIUserSettings().recommendationMode,
+        contextScope: profile.ai_context_scope ?? defaultAIUserSettings().contextScope,
+        cloudModelId: profile.ai_cloud_model_id ?? defaultAIUserSettings().cloudModelId,
+        primaryGoal: profile.ai_primary_goal ?? defaultAIUserSettings().primaryGoal,
+        physicalConsideration: profile.ai_physical_consideration ?? defaultAIUserSettings().physicalConsideration,
+        availabilityWindow: profile.ai_availability_window ?? defaultAIUserSettings().availabilityWindow,
+      },
     {
       pathname: '/profile',
       siteSignals: ['Profile page', 'User settings'],
@@ -460,6 +498,24 @@ export default function ProfilePage() {
                       </option>
                     ))}
                   </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Cloud model</label>
+                  <select
+                    value={profile.ai_cloud_model_id ?? defaultAIUserSettings().cloudModelId}
+                    onChange={(e) => setProfile((p) => ({ ...p, ai_cloud_model_id: e.target.value as AICloudModelId }))}
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-blue-400 text-sm bg-white"
+                  >
+                    {AI_CLOUD_MODEL_OPTIONS.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label} - {opt.description}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="mt-1 text-[11px] text-gray-500">
+                    This is the exact cloud model used when the assistant does not use on-device AI.
+                  </p>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

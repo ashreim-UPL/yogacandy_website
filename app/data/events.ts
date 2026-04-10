@@ -12,6 +12,20 @@ export interface EventListing {
   tags: string[];
 }
 
+export interface SupabaseEventRow {
+  id: string;
+  title: string;
+  event_date: string;
+  format: 'Online' | 'In person' | 'Hybrid' | string;
+  city: string | null;
+  country: string | null;
+  country_code: string | null;
+  price: string | null;
+  description: string | null;
+  source_name: string | null;
+  tags: string[] | null;
+}
+
 export const aggregationWorkflow = [
   {
     title: 'Detect location',
@@ -104,8 +118,8 @@ function matchesLocation(event: EventListing, countryCode?: string) {
   return event.countryCode === 'GL' || event.format === 'Online' || event.countryCode === countryCode.toUpperCase();
 }
 
-export function getEventsForLocation(countryCode?: string, limit = 6): EventListing[] {
-  return allEvents
+export function getEventsForLocationFromDataset(events: EventListing[], countryCode?: string, limit = 6): EventListing[] {
+  return events
     .filter((event) => matchesLocation(event, countryCode))
     .sort((a, b) => {
       const aLocal = countryCode && a.countryCode === countryCode.toUpperCase() ? 1 : 0;
@@ -115,6 +129,26 @@ export function getEventsForLocation(countryCode?: string, limit = 6): EventList
       return new Date(a.date).getTime() - new Date(b.date).getTime();
     })
     .slice(0, limit);
+}
+
+export function getEventsForLocation(countryCode?: string, limit = 6): EventListing[] {
+  return getEventsForLocationFromDataset(allEvents, countryCode, limit);
+}
+
+export function mapSupabaseEventRow(row: SupabaseEventRow): EventListing {
+  return {
+    id: row.id,
+    title: row.title,
+    date: row.event_date,
+    format: row.format === 'Hybrid' ? 'Hybrid' : row.format === 'Online' ? 'Online' : 'In person',
+    city: row.city ?? 'Online',
+    country: row.country ?? 'Global',
+    countryCode: row.country_code ?? 'GL',
+    price: row.price ?? 'Free',
+    description: row.description ?? '',
+    source: row.source_name ?? 'Event API',
+    tags: row.tags ?? [],
+  };
 }
 
 export function getAllEvents() {

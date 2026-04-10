@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useLocation } from '@/app/context/LocationContext';
-import { aggregationWorkflow, getEventsForLocation } from '@/app/data/events';
+import { aggregationWorkflow, getEventsForLocation, getEventsForLocationFromDataset, mapSupabaseEventRow, type EventListing, type SupabaseEventRow } from '@/app/data/events';
 import { supabase } from '@/lib/supabase';
 import { useEffect, useState } from 'react';
 
@@ -12,7 +12,8 @@ function formatDate(date: string) {
 
 export default function EventsPage() {
   const { location, isLoading } = useLocation();
-  const events = getEventsForLocation(location?.countryCode, 6);
+  const [liveEvents, setLiveEvents] = useState<EventListing[]>([]);
+  const [liveFeedStatus, setLiveFeedStatus] = useState<'loading' | 'loaded' | 'empty'>('loading');
   const [sessionUserId, setSessionUserId] = useState<string | null>(null);
   const [submissionStatus, setSubmissionStatus] = useState<string | null>(null);
   const [submissionError, setSubmissionError] = useState<string | null>(null);
@@ -37,11 +38,50 @@ export default function EventsPage() {
     });
   }, []);
 
+  useEffect(() => {
+    let cancelled = false;
+
+    void (async () => {
+      const { data, error } = await supabase
+        .from('events')
+        .select('id,title,event_date,format,city,country,country_code,price,description,source_name,tags')
+        .order('event_date', { ascending: true });
+
+      if (cancelled) return;
+
+      if (error || !data) {
+        setLiveEvents([]);
+        setLiveFeedStatus('empty');
+        return;
+      }
+
+      const rows = data as SupabaseEventRow[];
+      const mapped = rows.map(mapSupabaseEventRow);
+      setLiveEvents(mapped);
+      setLiveFeedStatus(mapped.length > 0 ? 'loaded' : 'empty');
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   function handleSubmissionChange(
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>,
   ) {
     setSubmissionForm((current) => ({ ...current, [e.target.name]: e.target.value }));
   }
+
+  const events = liveEvents.length > 0
+    ? getEventsForLocationFromDataset(liveEvents, location?.countryCode, 6)
+    : getEventsForLocation(location?.countryCode, 6);
+
+  const liveFeedMessage =
+    liveFeedStatus === 'loaded'
+      ? 'Live event feed loaded from Supabase.'
+      : liveFeedStatus === 'empty'
+        ? 'No live Eventbrite rows found yet, so we are showing the curated fallback list.'
+        : 'Checking the live event feed...';
 
   async function handleSubmitEvent(e: React.FormEvent) {
     e.preventDefault();
@@ -114,6 +154,9 @@ export default function EventsPage() {
               : location
                 ? `Showing events for ${location.city}${location.country ? `, ${location.country}` : ''}`
                 : 'Showing online and global events until location is available.'}
+          </p>
+          <p className="text-xs text-gray-500 mt-2">
+            {liveFeedMessage}
           </p>
         </header>
 
