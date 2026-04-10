@@ -14,6 +14,7 @@ import {
   normalizeAIUserSettings,
   type AIUserSettings,
 } from '@/lib/aiContext';
+import { normalizeProfileFromMetadata } from '@/lib/profile';
 
 // ── Questionnaire ─────────────────────────────────────────────────────────────
 interface Question {
@@ -242,16 +243,17 @@ export default function StyleRecommender() {
 
       if (!cancelled) {
         setAiSettings(normalizeAIUserSettings(session.user.user_metadata));
-      }
-
-      const { data: profileData } = await supabase
-        .from('user_profiles')
-        .select('full_name, role, level, yoga_goals, preferred_styles, city, country_code')
-        .eq('id', session.user.id)
-        .maybeSingle();
-
-      if (!cancelled && profileData) {
-        setProfile(profileData as UserProfileSnapshot);
+        const profileMetadata = normalizeProfileFromMetadata(session.user.user_metadata);
+        setProfile({
+          fullName: profileMetadata.full_name ?? undefined,
+          role: profileMetadata.role ?? undefined,
+          level: profileMetadata.level ?? undefined,
+          yogaGoals: profileMetadata.yoga_goals ?? [],
+          preferredStyles: profileMetadata.preferred_styles ?? [],
+          city: profileMetadata.city ?? undefined,
+          country: undefined,
+          countryCode: profileMetadata.country_code ?? undefined,
+        });
       }
     })();
 

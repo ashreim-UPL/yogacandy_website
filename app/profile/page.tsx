@@ -2,6 +2,7 @@
 export const dynamic = 'force-static';
 
 import { supabase } from '@/lib/supabase';
+import { normalizeProfileFromMetadata, syncCurrentUserProfile } from '@/lib/profile';
 import {
   AI_AVAILABILITY_OPTIONS,
   AI_CLOUD_MODEL_OPTIONS,
@@ -106,11 +107,22 @@ export default function ProfilePage() {
       setUserId(u.id);
 
       // Pre-fill from auth metadata
+      const profileMetadata = normalizeProfileFromMetadata(u.user_metadata);
       const aiSettings = normalizeAIUserSettings(u.user_metadata);
       setProfile((p) => ({
         ...p,
-        full_name: u.user_metadata?.full_name ?? '',
-        role: u.user_metadata?.role ?? 'student',
+        full_name: profileMetadata.full_name ?? '',
+        role: (profileMetadata.role as Role | null) ?? 'student',
+        level: (profileMetadata.level as Level | null) ?? 'beginner',
+        yoga_goals: profileMetadata.yoga_goals ?? [],
+        preferred_styles: profileMetadata.preferred_styles ?? [],
+        country_code: profileMetadata.country_code ?? '',
+        city: profileMetadata.city ?? '',
+        bio: profileMetadata.bio ?? '',
+        website_url: profileMetadata.website_url ?? '',
+        instagram_handle: profileMetadata.instagram_handle ?? '',
+        marketing_consent: profileMetadata.marketing_consent ?? false,
+        onboarding_complete: profileMetadata.onboarding_complete ?? false,
         ai_provider_preference: aiSettings.providerPreference,
         ai_response_style: aiSettings.responseStyle,
         ai_recommendation_mode: aiSettings.recommendationMode,
@@ -122,26 +134,6 @@ export default function ProfilePage() {
       }));
 
       // Load existing profile row if it exists
-      const { data: existing } = await supabase
-        .from('user_profiles')
-        .select('*')
-        .eq('id', u.id)
-        .single();
-
-      if (existing) {
-        setProfile((p) => ({
-          ...p,
-          ...existing,
-          ai_provider_preference: aiSettings.providerPreference,
-          ai_response_style: aiSettings.responseStyle,
-          ai_recommendation_mode: aiSettings.recommendationMode,
-          ai_context_scope: aiSettings.contextScope,
-          ai_cloud_model_id: aiSettings.cloudModelId,
-          ai_primary_goal: aiSettings.primaryGoal,
-          ai_physical_consideration: aiSettings.physicalConsideration,
-          ai_availability_window: aiSettings.availabilityWindow,
-        }));
-      }
       setLoading(false);
     });
   }, [router]);
@@ -175,42 +167,48 @@ export default function ProfilePage() {
       ...profilePayload
     } = profile;
 
-    const payload = {
+    const metadataPayload = {
       ...profilePayload,
-      id: userId,
       onboarding_complete: complete || profile.onboarding_complete,
-      updated_at: new Date().toISOString(),
+      ...serializeAIUserSettings({
+        providerPreference: ai_provider_preference ?? defaultAIUserSettings().providerPreference,
+        responseStyle: ai_response_style ?? defaultAIUserSettings().responseStyle,
+        recommendationMode: ai_recommendation_mode ?? defaultAIUserSettings().recommendationMode,
+        contextScope: ai_context_scope ?? defaultAIUserSettings().contextScope,
+        cloudModelId: ai_cloud_model_id ?? defaultAIUserSettings().cloudModelId,
+        primaryGoal: ai_primary_goal ?? defaultAIUserSettings().primaryGoal,
+        physicalConsideration: ai_physical_consideration ?? defaultAIUserSettings().physicalConsideration,
+        availabilityWindow: ai_availability_window ?? defaultAIUserSettings().availabilityWindow,
+      }),
     };
 
-    const { error: upsertError } = await supabase
-      .from('user_profiles')
-      .upsert(payload, { onConflict: 'id' });
+    const { error: authError } = await supabase.auth.updateUser({ data: metadataPayload });
 
-    if (upsertError) {
-      setError(upsertError.message);
-    } else {
-      const { error: authError } = await supabase.auth.updateUser({
-        data: {
-          ...serializeAIUserSettings({
-            providerPreference: ai_provider_preference ?? defaultAIUserSettings().providerPreference,
-            responseStyle: ai_response_style ?? defaultAIUserSettings().responseStyle,
-            recommendationMode: ai_recommendation_mode ?? defaultAIUserSettings().recommendationMode,
-            contextScope: ai_context_scope ?? defaultAIUserSettings().contextScope,
-            cloudModelId: ai_cloud_model_id ?? defaultAIUserSettings().cloudModelId,
-            primaryGoal: ai_primary_goal ?? defaultAIUserSettings().primaryGoal,
-            physicalConsideration: ai_physical_consideration ?? defaultAIUserSettings().physicalConsideration,
-            availabilityWindow: ai_availability_window ?? defaultAIUserSettings().availabilityWindow,
-          }),
-        },
-      });
-
-      if (authError) {
-        setError(authError.message);
-      } else {
-        setSuccess(true);
-        if (complete) setTimeout(() => router.push('/dashboard'), 1200);
-      }
+    if (authError) {
+      setError(authError.message);
+      setSaving(false);
+      return;
     }
+
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      const user = userData.user;
+      if (user) {
+        await syncCurrentUserProfile(
+          {
+            id: user.id,
+            email: user.email ?? null,
+            user_metadata: { ...user.user_metadata, ...metadataPayload },
+          },
+          { role: (profile.role === 'teacher' ? 'teacher' : 'student') },
+        );
+      }
+    } catch (mirrorError) {
+      console.warn('[Profile] profile mirror failed:', mirrorError);
+    }
+
+    setSuccess(true);
+    if (complete) setTimeout(() => router.push('/dashboard'), 1200);
     setSaving(false);
   }
 

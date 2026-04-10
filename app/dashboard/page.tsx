@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useLocation } from "@/app/context/LocationContext";
@@ -21,9 +20,9 @@ import {
   normalizeAIUserSettings,
   type AIUserSettings,
 } from "@/lib/aiContext";
+import { normalizeProfileFromMetadata } from "@/lib/profile";
 
 type DashboardProfile = {
-  id: string;
   full_name: string | null;
   role: string | null;
   level: string | null;
@@ -103,7 +102,6 @@ function formatList(items: string[] | null | undefined) {
 }
 
 export default function DashboardPage() {
-  const router = useRouter();
   const { location } = useLocation();
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<DashboardProfile | null>(null);
@@ -120,22 +118,31 @@ export default function DashboardPage() {
       const session = data.session;
 
       if (!session?.user) {
-        router.replace("/auth/signup?next=/dashboard");
+        if (!cancelled) {
+          setProfile(null);
+          setAiSettings(defaultAIUserSettings());
+          setLoading(false);
+        }
         return;
       }
 
       setAiSettings(normalizeAIUserSettings(session.user.user_metadata));
 
-      const { data: profileData } = await supabase
-        .from("user_profiles")
-        .select(
-          "id,full_name,role,level,yoga_goals,preferred_styles,country_code,city,bio,website_url,instagram_handle,onboarding_complete",
-        )
-        .eq("id", session.user.id)
-        .maybeSingle();
-
       if (!cancelled) {
-        setProfile((profileData as DashboardProfile | null) ?? null);
+        const profileMetadata = normalizeProfileFromMetadata(session.user.user_metadata);
+        setProfile({
+          full_name: profileMetadata.full_name ?? null,
+          role: profileMetadata.role ?? null,
+          level: profileMetadata.level ?? null,
+          yoga_goals: profileMetadata.yoga_goals ?? null,
+          preferred_styles: profileMetadata.preferred_styles ?? null,
+          country_code: profileMetadata.country_code ?? null,
+          city: profileMetadata.city ?? null,
+          bio: profileMetadata.bio ?? null,
+          website_url: profileMetadata.website_url ?? null,
+          instagram_handle: profileMetadata.instagram_handle ?? null,
+          onboarding_complete: profileMetadata.onboarding_complete ?? null,
+        });
         setLoading(false);
       }
     };
@@ -144,22 +151,32 @@ export default function DashboardPage() {
 
     const { data } = supabase.auth.onAuthStateChange((_event, session) => {
       if (!session?.user) {
-        router.replace("/auth/signup?next=/dashboard");
+        if (!cancelled) {
+          setProfile(null);
+          setAiSettings(defaultAIUserSettings());
+          setLoading(false);
+        }
         return;
       }
 
       void (async () => {
         setAiSettings(normalizeAIUserSettings(session.user.user_metadata));
-        const { data: profileData } = await supabase
-          .from("user_profiles")
-          .select(
-            "id,full_name,role,level,yoga_goals,preferred_styles,country_code,city,bio,website_url,instagram_handle,onboarding_complete",
-          )
-          .eq("id", session.user.id)
-          .maybeSingle();
 
         if (!cancelled) {
-          setProfile((profileData as DashboardProfile | null) ?? null);
+          const profileMetadata = normalizeProfileFromMetadata(session.user.user_metadata);
+          setProfile({
+            full_name: profileMetadata.full_name ?? null,
+            role: profileMetadata.role ?? null,
+            level: profileMetadata.level ?? null,
+            yoga_goals: profileMetadata.yoga_goals ?? null,
+            preferred_styles: profileMetadata.preferred_styles ?? null,
+            country_code: profileMetadata.country_code ?? null,
+            city: profileMetadata.city ?? null,
+            bio: profileMetadata.bio ?? null,
+            website_url: profileMetadata.website_url ?? null,
+            instagram_handle: profileMetadata.instagram_handle ?? null,
+            onboarding_complete: profileMetadata.onboarding_complete ?? null,
+          });
         }
       })();
     });
@@ -169,7 +186,7 @@ export default function DashboardPage() {
       cancelled = true;
       subscription?.unsubscribe();
     };
-  }, [router]);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -248,6 +265,7 @@ export default function DashboardPage() {
     liveEvents.length > 0
       ? getEventsForLocationFromDataset(liveEvents, dashboardCountry, 3)
       : getEventsForLocation(dashboardCountry, 3);
+  const isSignedIn = Boolean(profile);
 
   if (loading) {
     return (
@@ -274,10 +292,14 @@ export default function DashboardPage() {
               Personal Dashboard
             </span>
             <h1 className="text-4xl font-extrabold tracking-tight">
-              {profile?.full_name ? `Welcome back, ${profile.full_name.split(" ")[0]}` : "Welcome back"}
+              {profile?.full_name
+                ? `Welcome back, ${profile.full_name.split(" ")[0]}`
+                : "Your YogaCandy dashboard"}
             </h1>
             <p className="text-gray-600 mt-3 max-w-2xl">
-              Your profile, preferences, and recommended content are gathered here so you can start with one overview instead of hopping between pages.
+              {isSignedIn
+                ? "Your profile, preferences, and recommended content are gathered here so you can start with one overview instead of hopping between pages."
+                : "Guests can browse the dashboard too. Sign in to turn these recommendations into a personalized view."}
             </p>
           </div>
 
@@ -310,13 +332,22 @@ export default function DashboardPage() {
 
           <section className="bg-white rounded-3xl p-8 border border-gray-100 shadow-sm">
             <p className="text-xs uppercase tracking-[0.2em] text-gray-400 mb-3">Profile Details</p>
-            <div className="space-y-3 text-sm">
-              <div><span className="text-gray-400">Role:</span> <span className="font-semibold capitalize">{profile?.role ?? "Not set"}</span></div>
-              <div><span className="text-gray-400">Level:</span> <span className="font-semibold capitalize">{profile?.level ?? "Not set"}</span></div>
-              <div><span className="text-gray-400">Location:</span> <span className="font-semibold">{profile?.city ? `${profile.city}${profile.country_code ? `, ${profile.country_code}` : ""}` : "Not set"}</span></div>
-              <div><span className="text-gray-400">Goals:</span> <span className="font-semibold">{formatList(profile?.yoga_goals)}</span></div>
-              <div><span className="text-gray-400">Styles:</span> <span className="font-semibold">{formatList(profile?.preferred_styles)}</span></div>
-            </div>
+            {isSignedIn ? (
+              <div className="space-y-3 text-sm">
+                <div><span className="text-gray-400">Role:</span> <span className="font-semibold capitalize">{profile?.role ?? "Not set"}</span></div>
+                <div><span className="text-gray-400">Level:</span> <span className="font-semibold capitalize">{profile?.level ?? "Not set"}</span></div>
+                <div><span className="text-gray-400">Location:</span> <span className="font-semibold">{profile?.city ? `${profile.city}${profile.country_code ? `, ${profile.country_code}` : ""}` : "Not set"}</span></div>
+                <div><span className="text-gray-400">Goals:</span> <span className="font-semibold">{formatList(profile?.yoga_goals)}</span></div>
+                <div><span className="text-gray-400">Styles:</span> <span className="font-semibold">{formatList(profile?.preferred_styles)}</span></div>
+              </div>
+            ) : (
+              <div className="space-y-3 text-sm text-gray-600">
+                <p>Sign in to save your role, goals, style preferences, and location here.</p>
+                <Link href="/auth/signup?next=/dashboard" className="inline-flex rounded-full bg-black text-white px-4 py-2 text-sm font-semibold hover:bg-gray-800">
+                  Sign in or create account
+                </Link>
+              </div>
+            )}
           </section>
         </div>
 
