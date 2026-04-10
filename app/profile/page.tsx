@@ -514,7 +514,7 @@ export default function ProfilePage() {
                     ))}
                   </select>
                   <p className="mt-1 text-[11px] text-gray-500">
-                    This is the exact cloud model used when the assistant does not use on-device AI.
+                    This is the exact cloud model used when the assistant runs through Gemini or OpenAI. On-device AI always uses the browser model.
                   </p>
                 </div>
 

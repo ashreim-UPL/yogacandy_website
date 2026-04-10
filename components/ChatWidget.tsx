@@ -25,12 +25,29 @@ interface Message {
 }
 
 type Provider = "chrome-ai" | "gemini" | "openai" | "fallback";
+type ProviderAvailability = {
+  chrome: boolean;
+  gemini: boolean;
+  openai: boolean;
+};
 
 function getProviderPriority(preference: AIProviderPreference): Provider[] {
-  if (preference === "on-device") return ["chrome-ai", "gemini", "openai"];
-  if (preference === "gemini") return ["gemini", "chrome-ai", "openai"];
-  if (preference === "openai") return ["openai", "chrome-ai", "gemini"];
+  if (preference === "on-device") return ["chrome-ai"];
+  if (preference === "gemini") return ["gemini"];
+  if (preference === "openai") return ["openai"];
   return ["chrome-ai", "gemini", "openai"];
+}
+
+function isProviderAvailable(provider: Provider, availability: ProviderAvailability) {
+  if (provider === "chrome-ai") return availability.chrome;
+  if (provider === "gemini") return availability.gemini;
+  if (provider === "openai") return availability.openai;
+  return false;
+}
+
+function resolveProvider(preference: AIProviderPreference, availability: ProviderAvailability): Provider {
+  const providerOrder = getProviderPriority(preference);
+  return providerOrder.find((candidate) => isProviderAvailable(candidate, availability)) ?? "fallback";
 }
 
 function getPageSignals(pathname: string) {
@@ -116,30 +133,68 @@ async function getReply(
   providerPreference: AIProviderPreference,
   systemPrompt: string,
   cloudModelId: string,
+  availability: ProviderAvailability,
 ): Promise<{ reply: string; usedProvider: Provider }> {
   const allMessages: Message[] = [...history, { role: "user", content: userMessage }];
+  const explicitPreference = providerPreference !== "auto";
   const providerOrder = getProviderPriority(providerPreference);
-  const chromeAvailable = await canUseBuiltInLanguageModel();
 
-  for (const candidate of providerOrder) {
-    try {
-      if (candidate === "chrome-ai" && chromeAvailable) {
-        return { reply: await askChromeAI(userMessage, systemPrompt), usedProvider: "chrome-ai" };
+  if (!explicitPreference) {
+    for (const candidate of providerOrder) {
+      try {
+        if (candidate === "chrome-ai" && availability.chrome) {
+          return { reply: await askChromeAI(userMessage, systemPrompt), usedProvider: "chrome-ai" };
+        }
+        if (candidate === "gemini" && availability.gemini) {
+          return { reply: await askGemini(allMessages, systemPrompt, cloudModelId), usedProvider: "gemini" };
+        }
+        if (candidate === "openai" && availability.openai) {
+          return { reply: await askOpenAI(allMessages, systemPrompt), usedProvider: "openai" };
+        }
+      } catch (err) {
+        console.warn(`[ChatWidget] Provider "${candidate}" failed:`, err);
       }
-      if (candidate === "gemini" && process.env.NEXT_PUBLIC_GEMINI_API_KEY) {
-        return { reply: await askGemini(allMessages, systemPrompt, cloudModelId), usedProvider: "gemini" };
-      }
-      if (candidate === "openai" && process.env.NEXT_PUBLIC_OPENAI_API_KEY) {
-        return { reply: await askOpenAI(allMessages, systemPrompt), usedProvider: "openai" };
-      }
-    } catch (err) {
-      console.warn(`[ChatWidget] Provider "${candidate}" failed:`, err);
     }
+
+    return {
+      reply:
+        "Quick take: I’m not connected to an AI model yet.\nWhy it fits: Add a Gemini, Gemma, or OpenAI key, or enable on-device AI.\nNext step: Open AI Context and choose a provider.",
+      usedProvider: "fallback",
+    };
+  }
+
+  const candidate = providerOrder[0];
+  const activeProvider = resolveProvider(providerPreference, availability);
+  if (activeProvider === "fallback") {
+    const missing =
+      candidate === "chrome-ai"
+        ? "On-device AI is unavailable in this browser"
+        : candidate === "gemini"
+          ? "The Gemini/Gemma API key is missing"
+          : "The OpenAI API key is missing";
+
+    return {
+      reply: `Quick take: ${candidate === "chrome-ai" ? "On-device AI" : candidate === "gemini" ? "Gemini/Gemma" : "OpenAI"} is not ready.\nWhy it fits: ${missing}.\nNext step: switch to Auto or add the missing key.`,
+      usedProvider: "fallback",
+    };
+  }
+
+  try {
+    if (activeProvider === "chrome-ai") {
+      return { reply: await askChromeAI(userMessage, systemPrompt), usedProvider: "chrome-ai" };
+    }
+    if (activeProvider === "gemini") {
+      return { reply: await askGemini(allMessages, systemPrompt, cloudModelId), usedProvider: "gemini" };
+    }
+    if (activeProvider === "openai") {
+      return { reply: await askOpenAI(allMessages, systemPrompt), usedProvider: "openai" };
+    }
+  } catch (err) {
+    console.warn(`[ChatWidget] Provider "${activeProvider}" failed:`, err);
   }
 
   return {
-    reply:
-      "Quick take: I’m not connected to an AI model yet.\nWhy it fits: Add a Gemini, Gemma, or OpenAI key, or enable on-device AI.\nNext step: Open AI Context and choose a provider.",
+    reply: `Quick take: ${candidate === "chrome-ai" ? "On-device AI" : candidate === "gemini" ? "Gemini/Gemma" : "OpenAI"} did not respond.\nWhy it fits: Try Auto or verify the API credentials.\nNext step: Open AI Context and choose a working provider.`,
     usedProvider: "fallback",
   };
 }
@@ -165,6 +220,20 @@ function getProviderSetupHint(provider: Provider): string | null {
   }
 
   return "Build-time env vars are missing. Set NEXT_PUBLIC_GEMINI_API_KEY or NEXT_PUBLIC_OPENAI_API_KEY in GitHub Actions and redeploy.";
+}
+
+function getProviderStatusText(preference: AIProviderPreference, availability: ProviderAvailability) {
+  if (preference === "auto") {
+    if (availability.chrome) return "Auto is using on-device AI";
+    if (availability.gemini) return "Auto is using Gemini/Gemma";
+    if (availability.openai) return "Auto is using OpenAI";
+    return "Auto has no provider ready";
+  }
+
+  if (preference === "on-device") return availability.chrome ? "On-device AI ready" : "On-device AI unavailable";
+  if (preference === "gemini") return availability.gemini ? "Gemini/Gemma ready" : "Gemini/Gemma key missing";
+  if (preference === "openai") return availability.openai ? "OpenAI ready" : "OpenAI key missing";
+  return "AI not configured";
 }
 
 function formatAssistantContent(content: string) {
@@ -229,7 +298,11 @@ export default function ChatWidget() {
   const [isLoading, setIsLoading] = useState(false);
   const [aiSettings, setAiSettings] = useState<AIUserSettings>(defaultAIUserSettings());
   const [profileSnapshot, setProfileSnapshot] = useState<UserProfileSnapshot | null>(null);
-  const [provider, setProvider] = useState<Provider>("fallback");
+  const [providerAvailability, setProviderAvailability] = useState<ProviderAvailability>({
+    chrome: false,
+    gemini: false,
+    openai: false,
+  });
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -298,22 +371,20 @@ export default function ChatWidget() {
     let cancelled = false;
 
     void (async () => {
-      const chromeAvailable = await canUseBuiltInLanguageModel();
-      const providerOrder = getProviderPriority(aiSettings.providerPreference);
-      const nextProvider = providerOrder.find((candidate) => {
-        if (candidate === "chrome-ai") return chromeAvailable;
-        if (candidate === "gemini") return Boolean(process.env.NEXT_PUBLIC_GEMINI_API_KEY);
-        if (candidate === "openai") return Boolean(process.env.NEXT_PUBLIC_OPENAI_API_KEY);
-        return false;
-      });
-
-      if (!cancelled) setProvider(nextProvider ?? "fallback");
+      const chrome = await canUseBuiltInLanguageModel();
+      if (!cancelled) {
+        setProviderAvailability({
+          chrome,
+          gemini: Boolean(process.env.NEXT_PUBLIC_GEMINI_API_KEY),
+          openai: Boolean(process.env.NEXT_PUBLIC_OPENAI_API_KEY),
+        });
+      }
     })();
 
     return () => {
       cancelled = true;
     };
-  }, [aiSettings.providerPreference]);
+  }, []);
 
   useEffect(() => {
     if (isOpen) {
@@ -359,15 +430,14 @@ export default function ChatWidget() {
       modelId: aiSettings.cloudModelId,
     });
 
-    const { reply, usedProvider } = await getReply(
+    const { reply } = await getReply(
       userMessage,
       messages,
       aiSettings.providerPreference,
       systemPrompt,
       aiSettings.cloudModelId,
+      providerAvailability,
     );
-
-    if (usedProvider !== provider) setProvider(usedProvider);
 
     setMessages((prev) => [...prev, { role: "assistant", content: reply }]);
     setIsLoading(false);
@@ -379,6 +449,9 @@ export default function ChatWidget() {
     openai: "bg-emerald-400",
     fallback: "bg-yellow-400",
   };
+
+  const activeProvider = resolveProvider(aiSettings.providerPreference, providerAvailability);
+  const providerStatusText = getProviderStatusText(aiSettings.providerPreference, providerAvailability);
 
   const contextSummary = buildAIContextSummary(
     profileSnapshot
@@ -419,12 +492,12 @@ export default function ChatWidget() {
               <div>
                 <h3 className="font-bold text-sm">YogaCandy Assistant</h3>
                 <div className="flex items-center gap-1.5">
-                  <span className={`w-1.5 h-1.5 rounded-full ${providerDotColor[provider]}`} />
-                  <p className="text-[10px] text-gray-400">{PROVIDER_LABELS[provider]}</p>
+                  <span className={`w-1.5 h-1.5 rounded-full ${providerDotColor[activeProvider]}`} />
+                  <p className="text-[10px] text-gray-400">{PROVIDER_LABELS[activeProvider]}</p>
                 </div>
-                {provider === "fallback" && (
+                {activeProvider === "fallback" && (
                   <p className="mt-1 text-[10px] text-gray-500 max-w-[220px] leading-snug">
-                    {getProviderSetupHint(provider)}
+                    {getProviderSetupHint(activeProvider)}
                   </p>
                 )}
               </div>
@@ -445,13 +518,21 @@ export default function ChatWidget() {
           </div>
 
           <div className="border-b border-gray-200 bg-gray-50 p-3 text-xs">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <p className="font-bold text-gray-700">AI Context</p>
-                  <p className="text-[10px] text-gray-500">Brief, grounded, profile-aware responses</p>
-                </div>
-                <p className="text-[10px] text-gray-500 font-semibold">Model: {selectedModelLabel}</p>
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="font-bold text-gray-700">AI Context</p>
+                <p className="text-[10px] text-gray-500">Brief, grounded, profile-aware responses</p>
               </div>
+              <p className="text-[10px] text-gray-500 font-semibold">Model: {selectedModelLabel}</p>
+            </div>
+
+            <div className="mt-2 flex items-center justify-between gap-3 rounded-xl border border-gray-200 bg-white px-3 py-2">
+              <div>
+                <p className="text-[10px] uppercase tracking-wider text-gray-400 font-semibold">Runtime</p>
+                <p className="text-[11px] text-gray-700">{providerStatusText}</p>
+              </div>
+              <p className="text-[10px] text-gray-500 font-semibold">Active: {PROVIDER_LABELS[activeProvider]}</p>
+            </div>
 
             <div className="mt-3 grid gap-2">
               <div className="flex flex-col gap-1">
@@ -486,13 +567,16 @@ export default function ChatWidget() {
                   }
                   className="rounded-full border border-gray-200 bg-white px-3 py-1.5 text-[11px] font-semibold text-gray-700 focus:outline-none focus:border-black"
                   aria-label="Select cloud model"
-                  >
+                >
                   {AI_CLOUD_MODEL_OPTIONS.map((option) => (
                     <option key={option.value} value={option.value}>
                       {option.label}
                     </option>
                   ))}
                 </select>
+                <p className="text-[10px] text-gray-400">
+                  This applies to cloud providers only. On-device AI always uses the browser model.
+                </p>
               </div>
             </div>
 
