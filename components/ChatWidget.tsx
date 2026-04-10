@@ -1,9 +1,21 @@
 "use client";
 import { useState, useRef, useEffect } from "react";
+import { usePathname } from "next/navigation";
+import { supabase } from "@/lib/supabase";
+import { useLocation } from "@/app/context/LocationContext";
 import {
   canUseBuiltInLanguageModel,
   createBuiltInLanguageModelSession,
 } from "@/lib/browserLanguageModel";
+import {
+  AI_PROVIDER_OPTIONS,
+  buildAIContextSummary,
+  buildGroundedChatPrompt,
+  defaultAIUserSettings,
+  normalizeAIUserSettings,
+  type AIUserSettings,
+  type AIProviderPreference,
+} from "@/lib/aiContext";
 
 /* ─── Types ─────────────────────────────────────────────────────────────── */
 interface Message {
@@ -13,25 +25,37 @@ interface Message {
 
 type Provider = "chrome-ai" | "gemini" | "openai" | "fallback";
 
-const SYSTEM_PROMPT =
-  "You are the YogaCandy AI assistant. Answer briefly (2–5 sentences), clearly, and safely. " +
-  "Focus on yoga styles, wellness, class selection, and general guidance. " +
-  "Never give medical advice. If unsure, suggest speaking with a qualified teacher.";
+function getProviderPriority(preference: AIProviderPreference): Provider[] {
+  if (preference === "on-device") return ["chrome-ai", "gemini", "openai"];
+  if (preference === "gemini") return ["gemini", "chrome-ai", "openai"];
+  if (preference === "openai") return ["openai", "chrome-ai", "gemini"];
+  return ["chrome-ai", "gemini", "openai"];
+}
 
-async function askChromeAI(prompt: string): Promise<string> {
+function getPageSignals(pathname: string) {
+  const signals = ["YogaCandy site"];
+  if (pathname === "/") signals.push("Home page");
+  if (pathname.startsWith("/styles")) signals.push("Yoga styles catalog");
+  if (pathname.startsWith("/events")) signals.push("Events listing");
+  if (pathname.startsWith("/profile")) signals.push("User profile");
+  if (pathname.startsWith("/community")) signals.push("Community area");
+  return signals;
+}
+
+async function askChromeAI(prompt: string, systemPrompt: string): Promise<string> {
   const session = await createBuiltInLanguageModelSession({
-    systemPrompt: SYSTEM_PROMPT,
+    systemPrompt,
   });
 
   try {
-    const reply = await session.prompt(`${prompt}\n\nIf helpful, end with one follow-up question.`);
+    const reply = await session.prompt(prompt);
     return reply.trim() || "I couldn't generate a reply.";
   } finally {
     session.destroy();
   }
 }
 
-async function askGemini(messages: Message[]): Promise<string> {
+async function askGemini(messages: Message[], systemPrompt: string): Promise<string> {
   const key = process.env.NEXT_PUBLIC_GEMINI_API_KEY!;
   // Use v1 unless you specifically need v1beta-only experimental features.
   const url = `https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent?key=${key}`;
@@ -48,7 +72,7 @@ async function askGemini(messages: Message[]): Promise<string> {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       systemInstruction: {
-        parts: [{ text: SYSTEM_PROMPT }],
+        parts: [{ text: systemPrompt }],
       },
       contents,
       generationConfig: {
@@ -62,7 +86,7 @@ async function askGemini(messages: Message[]): Promise<string> {
   return data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() ?? "No response.";
 }
 
-async function askOpenAI(messages: Message[]): Promise<string> {
+async function askOpenAI(messages: Message[], systemPrompt: string): Promise<string> {
   const key = process.env.NEXT_PUBLIC_OPENAI_API_KEY!;
   const res = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
@@ -73,7 +97,7 @@ async function askOpenAI(messages: Message[]): Promise<string> {
     body: JSON.stringify({
       model: "gpt-4o-mini",
       messages: [
-        { role: "system", content: SYSTEM_PROMPT },
+        { role: "system", content: systemPrompt },
         ...messages.map((m) => ({ role: m.role, content: m.content })),
       ],
       max_tokens: 300,
@@ -88,49 +112,26 @@ async function askOpenAI(messages: Message[]): Promise<string> {
 async function getReply(
   userMessage: string,
   history: Message[],
-  provider: Provider,
+  providerPreference: AIProviderPreference,
+  systemPrompt: string,
 ): Promise<{ reply: string; usedProvider: Provider }> {
   const allMessages: Message[] = [...history, { role: "user", content: userMessage }];
+  const providerOrder = getProviderPriority(providerPreference);
+  const chromeAvailable = await canUseBuiltInLanguageModel();
 
-  try {
-    if (provider === "fallback") {
-      if (await canUseBuiltInLanguageModel()) {
-        return { reply: await askChromeAI(userMessage), usedProvider: "chrome-ai" };
+  for (const candidate of providerOrder) {
+    try {
+      if (candidate === "chrome-ai" && chromeAvailable) {
+        return { reply: await askChromeAI(userMessage, systemPrompt), usedProvider: "chrome-ai" };
       }
-      if (process.env.NEXT_PUBLIC_GEMINI_API_KEY) {
-        return { reply: await askGemini(allMessages), usedProvider: "gemini" };
+      if (candidate === "gemini" && process.env.NEXT_PUBLIC_GEMINI_API_KEY) {
+        return { reply: await askGemini(allMessages, systemPrompt), usedProvider: "gemini" };
       }
-      if (process.env.NEXT_PUBLIC_OPENAI_API_KEY) {
-        return { reply: await askOpenAI(allMessages), usedProvider: "openai" };
+      if (candidate === "openai" && process.env.NEXT_PUBLIC_OPENAI_API_KEY) {
+        return { reply: await askOpenAI(allMessages, systemPrompt), usedProvider: "openai" };
       }
-    }
-
-    if (provider === "chrome-ai") {
-      return { reply: await askChromeAI(userMessage), usedProvider: "chrome-ai" };
-    }
-    if (provider === "gemini") {
-      return { reply: await askGemini(allMessages), usedProvider: "gemini" };
-    }
-    if (provider === "openai") {
-      return { reply: await askOpenAI(allMessages), usedProvider: "openai" };
-    }
-  } catch (err) {
-    console.warn(`[ChatWidget] Provider "${provider}" failed:`, err);
-    if (provider === "chrome-ai") {
-      if (process.env.NEXT_PUBLIC_GEMINI_API_KEY) {
-        try {
-          return { reply: await askGemini(allMessages), usedProvider: "gemini" };
-        } catch (fallbackErr) {
-          console.warn("[ChatWidget] Gemini fallback also failed:", fallbackErr);
-        }
-      }
-      if (process.env.NEXT_PUBLIC_OPENAI_API_KEY) {
-        try {
-          return { reply: await askOpenAI(allMessages), usedProvider: "openai" };
-        } catch (fallbackErr) {
-          console.warn("[ChatWidget] OpenAI fallback also failed:", fallbackErr);
-        }
-      }
+    } catch (err) {
+      console.warn(`[ChatWidget] Provider "${candidate}" failed:`, err);
     }
   }
 
@@ -189,8 +190,21 @@ function YCAvatar({ size = 32 }: { size?: number }) {
   );
 }
 
+interface UserProfileSnapshot {
+  fullName?: string | null;
+  role?: string | null;
+  level?: string | null;
+  yogaGoals?: string[] | null;
+  preferredStyles?: string[] | null;
+  city?: string | null;
+  country?: string | null;
+  countryCode?: string | null;
+}
+
 /* ─── Component ──────────────────────────────────────────────────────────── */
 export default function ChatWidget() {
+  const pathname = usePathname();
+  const { location } = useLocation();
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -201,35 +215,93 @@ export default function ChatWidget() {
   ]);
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [aiSettings, setAiSettings] = useState<AIUserSettings>(defaultAIUserSettings());
+  const [profileSnapshot, setProfileSnapshot] = useState<UserProfileSnapshot | null>(null);
   const [provider, setProvider] = useState<Provider>("fallback");
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     let cancelled = false;
+    let subscription: { unsubscribe: () => void } | null = null;
+
+    const loadUserContext = async () => {
+      const { data } = await supabase.auth.getSession();
+      const session = data.session;
+
+      if (!session?.user) {
+        if (!cancelled) {
+          setAiSettings(defaultAIUserSettings());
+          setProfileSnapshot(null);
+        }
+        return;
+      }
+
+      const settings = normalizeAIUserSettings(session.user.user_metadata);
+      if (!cancelled) setAiSettings(settings);
+
+      const { data: profileData } = await supabase
+        .from("user_profiles")
+        .select("full_name, role, level, yoga_goals, preferred_styles, city, country_code")
+        .eq("id", session.user.id)
+        .maybeSingle();
+
+      if (!cancelled) {
+        setProfileSnapshot(profileData ? (profileData as UserProfileSnapshot) : null);
+      }
+    };
+
+    void loadUserContext();
+
+    const { data } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!session?.user) {
+        setAiSettings(defaultAIUserSettings());
+        setProfileSnapshot(null);
+        return;
+      }
+
+      void (async () => {
+        const settings = normalizeAIUserSettings(session.user.user_metadata);
+        if (!cancelled) setAiSettings(settings);
+
+        const { data: profileData } = await supabase
+          .from("user_profiles")
+          .select("full_name, role, level, yoga_goals, preferred_styles, city, country_code")
+          .eq("id", session.user.id)
+          .maybeSingle();
+
+        if (!cancelled) {
+          setProfileSnapshot(profileData ? (profileData as UserProfileSnapshot) : null);
+        }
+      })();
+    });
+    subscription = data.subscription;
+
+    return () => {
+      cancelled = true;
+      subscription?.unsubscribe();
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
 
     void (async () => {
-      if (await canUseBuiltInLanguageModel()) {
-        if (!cancelled) setProvider("chrome-ai");
-        return;
-      }
+      const chromeAvailable = await canUseBuiltInLanguageModel();
+      const providerOrder = getProviderPriority(aiSettings.providerPreference);
+      const nextProvider = providerOrder.find((candidate) => {
+        if (candidate === "chrome-ai") return chromeAvailable;
+        if (candidate === "gemini") return Boolean(process.env.NEXT_PUBLIC_GEMINI_API_KEY);
+        if (candidate === "openai") return Boolean(process.env.NEXT_PUBLIC_OPENAI_API_KEY);
+        return false;
+      });
 
-      if (process.env.NEXT_PUBLIC_GEMINI_API_KEY) {
-        if (!cancelled) setProvider("gemini");
-        return;
-      }
-
-      if (process.env.NEXT_PUBLIC_OPENAI_API_KEY) {
-        if (!cancelled) setProvider("openai");
-        return;
-      }
-
-      if (!cancelled) setProvider("fallback");
+      if (!cancelled) setProvider(nextProvider ?? "fallback");
     })();
 
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [aiSettings.providerPreference]);
 
   useEffect(() => {
     if (isOpen) {
@@ -247,7 +319,34 @@ export default function ChatWidget() {
     setInput("");
     setIsLoading(true);
 
-    const { reply, usedProvider } = await getReply(userMessage, messages, provider);
+    const systemPrompt = buildGroundedChatPrompt({
+      profile: profileSnapshot
+        ? {
+            fullName: profileSnapshot.fullName ?? undefined,
+            role: profileSnapshot.role ?? undefined,
+            level: profileSnapshot.level ?? undefined,
+            yogaGoals: profileSnapshot.yogaGoals ?? [],
+            preferredStyles: profileSnapshot.preferredStyles ?? [],
+            city: profileSnapshot.city ?? undefined,
+            country: profileSnapshot.country ?? undefined,
+            countryCode: profileSnapshot.countryCode ?? undefined,
+          }
+        : null,
+      location: location
+        ? {
+            city: location.city,
+            country: location.country,
+            countryCode: location.countryCode,
+          }
+        : null,
+      settings: aiSettings,
+      page: {
+        pathname,
+        siteSignals: getPageSignals(pathname),
+      },
+    });
+
+    const { reply, usedProvider } = await getReply(userMessage, messages, aiSettings.providerPreference, systemPrompt);
 
     if (usedProvider !== provider) setProvider(usedProvider);
 
@@ -262,10 +361,37 @@ export default function ChatWidget() {
     fallback: "bg-yellow-400",
   };
 
+  const contextSummary = buildAIContextSummary(
+    profileSnapshot
+      ? {
+          fullName: profileSnapshot.fullName ?? undefined,
+          role: profileSnapshot.role ?? undefined,
+          level: profileSnapshot.level ?? undefined,
+          yogaGoals: profileSnapshot.yogaGoals ?? [],
+          preferredStyles: profileSnapshot.preferredStyles ?? [],
+          city: profileSnapshot.city ?? undefined,
+          country: profileSnapshot.country ?? undefined,
+          countryCode: profileSnapshot.countryCode ?? undefined,
+        }
+      : null,
+    location
+      ? {
+          city: location.city,
+          country: location.country,
+          countryCode: location.countryCode,
+        }
+      : null,
+    aiSettings,
+    {
+      pathname,
+      siteSignals: getPageSignals(pathname),
+    },
+  );
+
   return (
     <div id="ai-assistant" className="fixed bottom-6 right-6 z-[100]">
       {isOpen ? (
-        <div className="bg-white border rounded-2xl shadow-2xl w-80 sm:w-96 overflow-hidden flex flex-col">
+        <div className="bg-white border rounded-2xl shadow-2xl w-80 sm:w-96 overflow-hidden flex flex-col max-h-[80vh]">
           <div className="bg-black p-4 flex justify-between items-center text-white">
             <div className="flex items-center gap-3">
               <YCAvatar size={36} />
@@ -297,7 +423,48 @@ export default function ChatWidget() {
             </button>
           </div>
 
-          <div className="p-4 h-72 overflow-y-auto bg-gray-50 flex flex-col gap-3">
+          <div className="border-b border-gray-200 bg-gray-50 p-3 text-xs">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="font-bold text-gray-700">AI Context</p>
+                <p className="text-[10px] text-gray-500">Brief, grounded, profile-aware responses</p>
+              </div>
+              <select
+                value={aiSettings.providerPreference}
+                onChange={(e) =>
+                  setAiSettings((prev) => ({
+                    ...prev,
+                    providerPreference: e.target.value as AIProviderPreference,
+                  }))
+                }
+                className="rounded-full border border-gray-200 bg-white px-3 py-1.5 text-[11px] font-semibold text-gray-700 focus:outline-none focus:border-black"
+                aria-label="Select AI provider preference"
+              >
+                {AI_PROVIDER_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              <div className="rounded-xl border border-gray-200 bg-white px-2 py-1.5">
+                <p className="text-[10px] text-gray-400 uppercase tracking-wider">Profile</p>
+                <p className="text-[11px] text-gray-700 truncate">{contextSummary.profileSummary}</p>
+              </div>
+              <div className="rounded-xl border border-gray-200 bg-white px-2 py-1.5">
+                <p className="text-[10px] text-gray-400 uppercase tracking-wider">Location</p>
+                <p className="text-[11px] text-gray-700 truncate">{contextSummary.locationSummary}</p>
+              </div>
+              <div className="rounded-xl border border-gray-200 bg-white px-2 py-1.5 col-span-2">
+                <p className="text-[10px] text-gray-400 uppercase tracking-wider">Settings</p>
+                <p className="text-[11px] text-gray-700 leading-snug">{contextSummary.settingsSummary}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="p-4 overflow-y-auto bg-gray-50 flex flex-col gap-3 flex-1 min-h-0">
             {messages.map((msg, i) => (
               <div
                 key={i}
