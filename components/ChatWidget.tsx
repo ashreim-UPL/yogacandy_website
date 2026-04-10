@@ -144,7 +144,7 @@ async function getReply(
     if (providerPreference === "on-device") {
       return {
         reply:
-          "Quick take: On-device AI is unavailable here.\nWhy it fits: Your browser needs Chrome built-in AI support.\nNext step: Switch to Auto or use Gemini/OpenAI.",
+          "Quick take: On-device AI is unavailable here.\nWhy it fits: Your browser needs Chrome built-in AI support.\nNext step: Switch to Auto or use a cloud model.",
         usedProvider: "fallback",
       };
     }
@@ -152,7 +152,7 @@ async function getReply(
     const configuredLabel = providerPreference === "gemini" ? "Gemini" : "OpenAI";
     return {
       reply:
-        `Quick take: ${configuredLabel} is not ready right now.\nWhy it fits: The selected provider needs a valid API key and deploy config.\nNext step: Switch to Auto or fix the ${configuredLabel} key.`,
+        `Quick take: ${configuredLabel} is not ready right now.\nWhy it fits: The selected provider needs a valid API key and a supported model.\nNext step: Switch to Auto or pick a model your key can access.`,
       usedProvider: "fallback",
     };
   }
@@ -238,6 +238,7 @@ export default function ChatWidget() {
     },
   ]);
   const [isOpen, setIsOpen] = useState(false);
+  const [configOpen, setConfigOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [aiSettings, setAiSettings] = useState<AIUserSettings>(defaultAIUserSettings());
   const [profileSnapshot, setProfileSnapshot] = useState<UserProfileSnapshot | null>(null);
@@ -446,7 +447,16 @@ export default function ChatWidget() {
   return (
     <div id="ai-assistant" className="fixed bottom-6 right-6 z-[100]">
       {isOpen ? (
-        <div className="bg-white border rounded-2xl shadow-2xl w-80 sm:w-96 overflow-hidden flex flex-col max-h-[80vh]">
+        <div
+          className="bg-white border rounded-2xl shadow-2xl overflow-hidden flex flex-col"
+          style={{
+            width: "min(92vw, 34rem)",
+            height: "min(88vh, 52rem)",
+            minWidth: "20rem",
+            minHeight: "28rem",
+            resize: "both",
+          }}
+        >
           <div className="bg-black p-4 flex justify-between items-center text-white">
             <div className="flex items-center gap-3">
               <YCAvatar size={36} />
@@ -479,71 +489,86 @@ export default function ChatWidget() {
           </div>
 
           <div className="border-b border-gray-200 bg-gray-50 p-3 text-xs">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <p className="font-bold text-gray-700">AI Context</p>
-                  <p className="text-[10px] text-gray-500">Brief, grounded, profile-aware responses</p>
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="font-bold text-gray-700">AI Context</p>
+                <p className="text-[10px] text-gray-500">Brief, grounded, profile-aware responses</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setConfigOpen((open) => !open)}
+                className="shrink-0 rounded-full border border-gray-200 bg-white px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-gray-700 hover:border-black hover:text-black"
+              >
+                {configOpen ? "Hide settings" : "Show settings"}
+              </button>
+            </div>
+
+            <div className="mt-2 flex items-center justify-between gap-3 text-[10px] text-gray-500">
+              <span className="font-semibold">Model: {selectedModelLabel}</span>
+              <span className="truncate text-right">Active: {providerLabel}</span>
+            </div>
+
+            {configOpen && (
+              <>
+                <div className="mt-3 grid gap-2">
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[10px] uppercase tracking-wider text-gray-400 font-semibold">Provider</label>
+                    <select
+                      value={aiSettings.providerPreference}
+                      onChange={(e) =>
+                        setAiSettings((prev) => ({
+                          ...prev,
+                          providerPreference: e.target.value as AIProviderPreference,
+                        }))
+                      }
+                      className="rounded-full border border-gray-200 bg-white px-3 py-1.5 text-[11px] font-semibold text-gray-700 focus:outline-none focus:border-black"
+                      aria-label="Select AI provider preference"
+                    >
+                      {AI_PROVIDER_OPTIONS.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[10px] uppercase tracking-wider text-gray-400 font-semibold">Cloud model</label>
+                    <select
+                      value={aiSettings.cloudModelId}
+                      onChange={(e) =>
+                        setAiSettings((prev) => ({
+                          ...prev,
+                          cloudModelId: e.target.value as AIUserSettings["cloudModelId"],
+                        }))
+                      }
+                      className="rounded-full border border-gray-200 bg-white px-3 py-1.5 text-[11px] font-semibold text-gray-700 focus:outline-none focus:border-black"
+                      aria-label="Select cloud model"
+                    >
+                      {AI_CLOUD_MODEL_OPTIONS.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
-                <p className="text-[10px] text-gray-500 font-semibold">Model: {selectedModelLabel}</p>
-              </div>
 
-            <div className="mt-3 grid gap-2">
-              <div className="flex flex-col gap-1">
-                <label className="text-[10px] uppercase tracking-wider text-gray-400 font-semibold">Provider</label>
-                <select
-                  value={aiSettings.providerPreference}
-                  onChange={(e) =>
-                    setAiSettings((prev) => ({
-                      ...prev,
-                      providerPreference: e.target.value as AIProviderPreference,
-                    }))
-                  }
-                  className="rounded-full border border-gray-200 bg-white px-3 py-1.5 text-[11px] font-semibold text-gray-700 focus:outline-none focus:border-black"
-                  aria-label="Select AI provider preference"
-                >
-                  {AI_PROVIDER_OPTIONS.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="flex flex-col gap-1">
-                <label className="text-[10px] uppercase tracking-wider text-gray-400 font-semibold">Cloud model</label>
-                <select
-                  value={aiSettings.cloudModelId}
-                  onChange={(e) =>
-                    setAiSettings((prev) => ({
-                      ...prev,
-                      cloudModelId: e.target.value as AIUserSettings["cloudModelId"],
-                    }))
-                  }
-                  className="rounded-full border border-gray-200 bg-white px-3 py-1.5 text-[11px] font-semibold text-gray-700 focus:outline-none focus:border-black"
-                  aria-label="Select cloud model"
-                  >
-                  {AI_CLOUD_MODEL_OPTIONS.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            <div className="mt-3 grid grid-cols-2 gap-2">
-              <div className="rounded-xl border border-gray-200 bg-white px-2 py-1.5">
-                <p className="text-[10px] text-gray-400 uppercase tracking-wider">Profile</p>
-                <p className="text-[11px] text-gray-700 truncate">{contextSummary.profileSummary}</p>
-              </div>
-              <div className="rounded-xl border border-gray-200 bg-white px-2 py-1.5">
-                <p className="text-[10px] text-gray-400 uppercase tracking-wider">Location</p>
-                <p className="text-[11px] text-gray-700 truncate">{contextSummary.locationSummary}</p>
-              </div>
-              <div className="rounded-xl border border-gray-200 bg-white px-2 py-1.5 col-span-2">
-                <p className="text-[10px] text-gray-400 uppercase tracking-wider">Settings</p>
-                <p className="text-[11px] text-gray-700 leading-snug">{contextSummary.settingsSummary}</p>
-              </div>
-            </div>
+                <div className="mt-3 grid grid-cols-2 gap-2">
+                  <div className="rounded-xl border border-gray-200 bg-white px-2 py-1.5">
+                    <p className="text-[10px] text-gray-400 uppercase tracking-wider">Profile</p>
+                    <p className="text-[11px] text-gray-700 truncate">{contextSummary.profileSummary}</p>
+                  </div>
+                  <div className="rounded-xl border border-gray-200 bg-white px-2 py-1.5">
+                    <p className="text-[10px] text-gray-400 uppercase tracking-wider">Location</p>
+                    <p className="text-[11px] text-gray-700 truncate">{contextSummary.locationSummary}</p>
+                  </div>
+                  <div className="rounded-xl border border-gray-200 bg-white px-2 py-1.5 col-span-2">
+                    <p className="text-[10px] text-gray-400 uppercase tracking-wider">Settings</p>
+                    <p className="text-[11px] text-gray-700 leading-snug">{contextSummary.settingsSummary}</p>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
 
           <div className="p-4 overflow-y-auto bg-gray-50 flex flex-col gap-3 flex-1 min-h-0">
