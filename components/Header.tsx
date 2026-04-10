@@ -35,19 +35,13 @@ export default function Header() {
     ?? user?.email?.[0]?.toUpperCase()
     ?? "?";
 
-  const navLinks = user
-    ? [
-        { href: "/dashboard", label: "Dashboard" },
-        { href: "/styles", label: "Yoga Styles" },
-        { href: "/events", label: "Events" },
-        { href: "/community", label: "Community" },
-      ]
-    : [
-        { href: "/", label: "Home" },
-        { href: "/styles", label: "Yoga Styles" },
-        { href: "/events", label: "Events" },
-        { href: "/community", label: "Community" },
-      ];
+  const navLinks = [
+    { href: "/", label: "Home" },
+    { href: "/dashboard", label: "Dashboard" },
+    { href: "/styles", label: "Yoga Styles" },
+    { href: "/events", label: "Events" },
+    { href: "/community", label: "Community" },
+  ];
 
   return (
     <header className="border-b bg-white/90 backdrop-blur-sm sticky top-0 z-50">

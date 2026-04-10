@@ -7,6 +7,7 @@ import {
   canUseBuiltInLanguageModel,
   createBuiltInLanguageModelSession,
 } from "@/lib/browserLanguageModel";
+import { normalizeProfileFromMetadata } from "@/lib/profile";
 import {
   AI_PROVIDER_OPTIONS,
   AI_CLOUD_MODEL_OPTIONS,
@@ -251,14 +252,18 @@ export default function ChatWidget() {
       const settings = normalizeAIUserSettings(session.user.user_metadata);
       if (!cancelled) setAiSettings(settings);
 
-      const { data: profileData } = await supabase
-        .from("user_profiles")
-        .select("full_name, role, level, yoga_goals, preferred_styles, city, country_code")
-        .eq("id", session.user.id)
-        .maybeSingle();
-
       if (!cancelled) {
-        setProfileSnapshot(profileData ? (profileData as UserProfileSnapshot) : null);
+        const profileMetadata = normalizeProfileFromMetadata(session.user.user_metadata);
+        setProfileSnapshot({
+          fullName: profileMetadata.full_name ?? undefined,
+          role: profileMetadata.role ?? undefined,
+          level: profileMetadata.level ?? undefined,
+          yogaGoals: profileMetadata.yoga_goals ?? [],
+          preferredStyles: profileMetadata.preferred_styles ?? [],
+          city: profileMetadata.city ?? undefined,
+          country: undefined,
+          countryCode: profileMetadata.country_code ?? undefined,
+        });
       }
     };
 
@@ -275,14 +280,18 @@ export default function ChatWidget() {
         const settings = normalizeAIUserSettings(session.user.user_metadata);
         if (!cancelled) setAiSettings(settings);
 
-        const { data: profileData } = await supabase
-          .from("user_profiles")
-          .select("full_name, role, level, yoga_goals, preferred_styles, city, country_code")
-          .eq("id", session.user.id)
-          .maybeSingle();
-
         if (!cancelled) {
-          setProfileSnapshot(profileData ? (profileData as UserProfileSnapshot) : null);
+          const profileMetadata = normalizeProfileFromMetadata(session.user.user_metadata);
+          setProfileSnapshot({
+            fullName: profileMetadata.full_name ?? undefined,
+            role: profileMetadata.role ?? undefined,
+            level: profileMetadata.level ?? undefined,
+            yogaGoals: profileMetadata.yoga_goals ?? [],
+            preferredStyles: profileMetadata.preferred_styles ?? [],
+            city: profileMetadata.city ?? undefined,
+            country: undefined,
+            countryCode: profileMetadata.country_code ?? undefined,
+          });
         }
       })();
     });

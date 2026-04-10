@@ -5,7 +5,7 @@ import RegionalArticles from "@/components/RegionalArticles";
 import StyleRecommender from "@/components/StyleRecommender";
 import AffiliateLink from "@/components/AffiliateLink";
 import AdSlot from "@/components/AdSlot";
-import AuthenticatedLandingRedirect from "@/components/AuthenticatedLandingRedirect";
+import HomeLandingState from "@/components/HomeLandingState";
 import Link from "next/link";
 import { wheelAxes } from "@/app/data/wheel";
 import type { ReactNode } from "react";
@@ -65,13 +65,13 @@ const featuredStyles = [
 export default function Home() {
   return (
     <div className="flex flex-col">
-      <AuthenticatedLandingRedirect />
       <section className="relative py-20 lg:py-32 overflow-hidden bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <div className="text-center lg:text-left lg:max-w-2xl">
             <div className="mb-6">
               <LocationBanner />
             </div>
+            <HomeLandingState />
 
             <span className="inline-block text-xs font-bold uppercase tracking-widest text-blue-600 bg-blue-50 px-3 py-1 rounded-full mb-6 border border-blue-100">
               AI-Powered Yoga Platform
