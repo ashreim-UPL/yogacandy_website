@@ -60,6 +60,12 @@ The widget automatically uses the best available provider. You only need to conf
      NEXT_PUBLIC_GEMINI_API_KEY: ${{ secrets.NEXT_PUBLIC_GEMINI_API_KEY }}
    ```
 
+For the Gemini API request itself, use the `v1` endpoint unless you need a `v1beta`-only experimental feature:
+
+```ts
+const url = `https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent?key=${key}`;
+```
+
 ---
 
 ## Option B — OpenAI API (ChatGPT / GPT-4o mini)
