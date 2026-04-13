@@ -178,22 +178,32 @@ Return ONLY a JSON object with these exact fields:
   "seo_description": "155-char max meta description"
 }}"""
 
-    try:
-        if ANTHROPIC_API_KEY:
-            raw, model_name = generate_with_claude(prompt)
-        elif GOOGLE_API_KEY:
-            raw, model_name = generate_with_google(prompt)
-        else:
-            raise RuntimeError("No AI API key configured. Set ANTHROPIC_API_KEY or GOOGLE_API_KEY.")
-        # Strip any accidental markdown fences
-        raw = re.sub(r"^```json\s*", "", raw)
-        raw = re.sub(r"\s*```$", "", raw)
-        data = json.loads(raw)
-        data["_model_name"] = model_name
-        return data
-    except Exception as e:
-        print(f"  Error generating article for '{topic}': {e}")
+    attempts = []
+    if ANTHROPIC_API_KEY:
+        attempts.append(("claude", generate_with_claude))
+    if GOOGLE_API_KEY:
+        attempts.append(("google", generate_with_google))
+
+    if not attempts:
+        print("  Error generating article: no AI API key configured")
         return None
+
+    last_error = None
+    for provider_name, generator in attempts:
+        try:
+            raw, model_name = generator(prompt)
+            # Strip any accidental markdown fences
+            raw = re.sub(r"^```json\s*", "", raw)
+            raw = re.sub(r"\s*```$", "", raw)
+            data = json.loads(raw)
+            data["_model_name"] = model_name
+            return data
+        except Exception as e:
+            last_error = e
+            print(f"  {provider_name.title()} error for '{topic}': {e}")
+
+    print(f"  Error generating article for '{topic}': {last_error}")
+    return None
 
 def publish_article(supabase, article: dict, region: str):
     slug = slugify(article["title"])[:80]
