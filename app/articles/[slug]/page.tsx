@@ -21,7 +21,7 @@ function sourceLabel(article: (typeof allArticles)[number]) {
 function reviewLabel(article: (typeof allArticles)[number]) {
   if (article.reviewStatus === 'verified') return 'Verified';
   if (article.reviewStatus === 'needs-review') return 'Needs review';
-  return 'Draft';
+  return 'Published';
 }
 
 export function generateStaticParams() {
@@ -67,7 +67,7 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
             <span className="text-[10px] font-bold uppercase tracking-widest bg-green-50 text-green-700 border border-green-100 px-2 py-0.5 rounded">
               {source}
             </span>
-            <span className="text-[10px] font-bold uppercase tracking-widest bg-amber-50 text-amber-700 border border-amber-100 px-2 py-0.5 rounded">
+            <span className="text-[10px] font-bold uppercase tracking-widest bg-slate-100 text-slate-700 border border-slate-200 px-2 py-0.5 rounded">
               {review}
             </span>
           </div>
