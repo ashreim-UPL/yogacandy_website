@@ -1,14 +1,13 @@
 """
-generate_articles.py - Use Claude or Google Gemini to generate high-quality
+generate_articles.py - Use Google Gemini to generate high-quality
 yoga articles, then publish them to Supabase.
 
 Required env vars:
   SUPABASE_URL
   SUPABASE_SERVICE_KEY (or SUPABASE_SERVICE_ROLE_KEY)
 
-Optional env vars:
-  ANTHROPIC_API_KEY   - preferred when available
-  GOOGLE_API_KEY      - Gemini API key fallback
+Required for generation:
+  GOOGLE_API_KEY      - Gemini API key
 
 Optional env vars (from workflow_dispatch inputs):
   TOPIC   - specific topic to write about
@@ -20,7 +19,6 @@ from datetime import datetime, timezone
 from slugify import slugify
 from supabase import create_client
 
-ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "").strip()
 GOOGLE_API_KEY = (
     os.environ.get("GOOGLE_API_KEY", "").strip()
     or os.environ.get("GEMINI_API_KEY", "").strip()
@@ -105,18 +103,6 @@ def require_env(name: str, value: str) -> str:
         raise RuntimeError(f"{name} is required")
     return value
 
-def generate_with_claude(prompt: str) -> tuple[str, str]:
-    import anthropic
-
-    client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
-    message = client.messages.create(
-        model="claude-opus-4-5",
-        max_tokens=2000,
-        system=SYSTEM_PROMPT,
-        messages=[{"role": "user", "content": prompt}]
-    )
-    return message.content[0].text.strip(), "claude-opus-4-5"
-
 def generate_with_google(prompt: str) -> tuple[str, str]:
     from google import genai
     from google.genai import types
@@ -178,32 +164,21 @@ Return ONLY a JSON object with these exact fields:
   "seo_description": "155-char max meta description"
 }}"""
 
-    attempts = []
-    if ANTHROPIC_API_KEY:
-        attempts.append(("claude", generate_with_claude))
-    if GOOGLE_API_KEY:
-        attempts.append(("google", generate_with_google))
-
-    if not attempts:
-        print("  Error generating article: no AI API key configured")
+    if not GOOGLE_API_KEY:
+        print("  Error generating article: GOOGLE_API_KEY is not configured")
         return None
 
-    last_error = None
-    for provider_name, generator in attempts:
-        try:
-            raw, model_name = generator(prompt)
-            # Strip any accidental markdown fences
-            raw = re.sub(r"^```json\s*", "", raw)
-            raw = re.sub(r"\s*```$", "", raw)
-            data = json.loads(raw)
-            data["_model_name"] = model_name
-            return data
-        except Exception as e:
-            last_error = e
-            print(f"  {provider_name.title()} error for '{topic}': {e}")
-
-    print(f"  Error generating article for '{topic}': {last_error}")
-    return None
+    try:
+        raw, model_name = generate_with_google(prompt)
+        # Strip any accidental markdown fences
+        raw = re.sub(r"^```json\s*", "", raw)
+        raw = re.sub(r"\s*```$", "", raw)
+        data = json.loads(raw)
+        data["_model_name"] = model_name
+        return data
+    except Exception as e:
+        print(f"  Gemini error for '{topic}': {e}")
+        return None
 
 def publish_article(supabase, article: dict, region: str):
     slug = slugify(article["title"])[:80]
@@ -227,7 +202,7 @@ def publish_article(supabase, article: dict, region: str):
         "read_min": article.get("read_min", 5),
         "author": "YogaCandy Editorial",
         "ai_generated": True,
-        "ai_model": article.get("_model_name", "claude-opus-4-5"),
+        "ai_model": article.get("_model_name", "gemini-2.5-flash"),
         "published": True,
         "published_at": datetime.now(timezone.utc).isoformat(),
         "seo_title": article.get("seo_title", article["title"])[:60],
@@ -243,13 +218,12 @@ def publish_article(supabase, article: dict, region: str):
 def main():
     require_env("SUPABASE_URL", SUPABASE_URL)
     require_env("SUPABASE_SERVICE_KEY or SUPABASE_SERVICE_ROLE_KEY", SUPABASE_KEY)
-    if not ANTHROPIC_API_KEY and not GOOGLE_API_KEY:
-        raise RuntimeError("Set ANTHROPIC_API_KEY or GOOGLE_API_KEY for article generation.")
+    require_env("GOOGLE_API_KEY (or GEMINI_API_KEY/NEXT_PUBLIC_GEMINI_API_KEY)", GOOGLE_API_KEY)
 
     supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
     print(f"=== YogaCandy Article Generator ===")
-    print(f"AI provider: {'Claude' if ANTHROPIC_API_KEY else 'Google Gemini'}")
+    print("AI provider: Google Gemini")
     print(f"Region: {REGION} | Count: {COUNT} | Custom topic: {CUSTOM_TOPIC or 'none'}")
 
     topics = pick_topics(REGION, COUNT, CUSTOM_TOPIC)
