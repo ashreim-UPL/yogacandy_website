@@ -9,6 +9,7 @@ Required env vars:
 import os, json, re
 from datetime import datetime, timezone, timedelta
 from supabase import create_client, Client
+from postgrest.exceptions import APIError
 
 SUPABASE_URL = os.environ["SUPABASE_URL"]
 SUPABASE_KEY = os.environ["SUPABASE_SERVICE_KEY"]
@@ -27,6 +28,49 @@ TARGET_LOCATIONS = [
     {"city": "Berlin", "country": "Germany", "country_code": "DE", "lat": 52.5200, "lng": 13.4050},
     {"city": "Mumbai", "country": "India", "country_code": "IN", "lat": 19.0760, "lng": 72.8777},
 ]
+
+def is_missing_table_error(err: Exception) -> bool:
+    if not isinstance(err, APIError):
+        return False
+    code = getattr(err, "code", None)
+    if code == "PGRST205":
+        return True
+    msg = str(err)
+    return "PGRST205" in msg and "schema cache" in msg
+
+def resolve_events_table() -> str:
+    for table_name in ("events", "event_listings"):
+        try:
+            supabase.table(table_name).select("id").limit(1).execute()
+            print(f"  Using table: {table_name}")
+            return table_name
+        except Exception as err:
+            if is_missing_table_error(err):
+                continue
+            raise
+    raise RuntimeError(
+        "Neither public.events nor public.event_listings exists in the target Supabase project. "
+        "Apply migrations before running sync."
+    )
+
+def to_target_row(ev: dict, table_name: str) -> dict:
+    if table_name == "events":
+        return ev
+    # public.event_listings has a narrower schema than public.events.
+    return {
+        "title": ev["title"],
+        "description": ev.get("description") or "",
+        "event_date": ev["event_date"],
+        "format": ev.get("format", "In person"),
+        "city": ev.get("city"),
+        "country": ev.get("country"),
+        "country_code": ev.get("country_code", "GL"),
+        "price": ev.get("price"),
+        "source_name": ev.get("source_name", "Eventbrite"),
+        "source_url": ev.get("source_url"),
+        "tags": ev.get("tags", []),
+        "location_key": ev.get("location_key"),
+    }
 
 def is_yoga_event(title: str, description: str) -> bool:
     text = (title + " " + description).lower()
@@ -115,18 +159,20 @@ def fetch_eventbrite_events(location: dict) -> list[dict]:
 def upsert_events(events: list[dict]):
     if not events:
         return
+    table_name = resolve_events_table()
     # Use title+event_date as natural dedup key
     for ev in events:
+        row = to_target_row(ev, table_name)
         # Check if it already exists
-        existing = supabase.table("events") \
+        existing = supabase.table(table_name) \
             .select("id") \
-            .eq("title", ev["title"]) \
-            .eq("event_date", ev["event_date"]) \
+            .eq("title", row["title"]) \
+            .eq("event_date", row["event_date"]) \
             .execute()
         if existing.data:
             print(f"    Skipped (exists): {ev['title']}")
             continue
-        supabase.table("events").insert(ev).execute()
+        supabase.table(table_name).insert(row).execute()
         print(f"    Inserted: {ev['title']}")
 
 def main():
